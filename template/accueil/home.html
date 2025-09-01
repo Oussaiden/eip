@@ -1,0 +1,37 @@
+<!-- template/accueil/home.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Accueil</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; }
+        header { background: #0b5ed7; color: #fff; padding: 1rem; }
+        main { padding: 1.25rem; }
+        a.button { display: inline-block; padding: .5rem .9rem; background: #0b5ed7; color: #fff; text-decoration: none; border-radius: .375rem; }
+        nav a { margin-right: .75rem; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Tableau de bord</h1>
+</header>
+<main>
+    <p>Bienvenue sur l’application.</p>
+
+    {% if user.is_authenticated %}
+        <p>Connecté en tant que {{ user.get_username }}.</p>
+        <nav>
+            <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="button" style="border:0; cursor:pointer;">Se déconnecter</button>
+            </form>
+        </nav>
+    {% else %}
+        <p>Vous n’êtes pas connecté.</p>
+        <a class="button" href="{% url 'login' %}">Se connecter</a>
+    {% endif %}
+</main>
+</body>
+</html>

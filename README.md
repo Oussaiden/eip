@@ -3,7 +3,7 @@
 EPI est une application web. Permettant la gestion d'une imprimerie.
 ## Articulation du projet :
 1. App login (auth)  
-[] Connexion / déconnexion  
+[x] Connexion / déconnexion  
 [] Gestion utilisateurs (création, permissions)  
 [] Middleware de sécurité
 2. App accueil  
