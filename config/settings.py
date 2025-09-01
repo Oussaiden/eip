@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'accounts',
 ]
 
 MIDDLEWARE = [
@@ -48,7 +49,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "template"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -73,7 +74,6 @@ DATABASES = {
         'PASSWORD': env('POSTGRES_PASSWORD'),
         'HOST': env('POSTGRES_HOST'),
         'PORT': env('POSTGRES_PORT'),
-        # 'OPTIONS': {'sslmode': 'require'},  # Décommentez si nécessaire
     }
 }
 
@@ -111,7 +111,16 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Dossier(s) de fichiers statiques hors apps
+STATICFILES_DIRS = [BASE_DIR / "template" / "static"]
+
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# URLs d'authentification
+LOGIN_URL = "/login/"            # ou "login" si tu utilises le nom d'URL
+LOGIN_REDIRECT_URL = "/"         # page d'accueil après connexion
+LOGOUT_REDIRECT_URL = "/login/"  # redirection après déconnexion
