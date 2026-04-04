@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'clients:list' %}">Clients</a></li>
+<li class="breadcrumb-item"><a href="{% url 'clients:detail' client.pk %}">{{ client.raison_sociale }}</a></li>
+<li class="breadcrumb-item active">{{ titre }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h4 class="fw-bold mb-0"><i class="bi bi-geo-alt me-2"></i>{{ titre }}</h4>
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width: 600px;">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Libellé <span class="text-danger">*</span></label>
+                {{ form.libelle }}
+                {% if form.libelle.errors %}<div class="text-danger small">{{ form.libelle.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Adresse <span class="text-danger">*</span></label>
+                {{ form.adresse }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Complément</label>
+                {{ form.complement }}
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Code postal</label>
+                    {{ form.code_postal }}
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">Ville <span class="text-danger">*</span></label>
+                    {{ form.ville }}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Pays</label>
+                {{ form.pays }}
+            </div>
+
+            <div class="mb-4">
+                <div class="form-check">
+                    {{ form.is_default }}
+                    <label class="form-check-label">Adresse par défaut</label>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>Enregistrer
+                </button>
+                <a href="{% url 'clients:detail' client.pk %}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

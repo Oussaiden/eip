@@ -1,0 +1,550 @@
+{% extends 'base.html' %}
+{% block title %}{{ client.raison_sociale }} — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'clients:list' %}">Clients</a></li>
+<li class="breadcrumb-item active">{{ client.raison_sociale }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .eip-tabs {
+        display: flex;
+        gap: 4px;
+        padding: 12px 16px 0;
+        border-bottom: 2px solid var(--bs-border-color);
+    }
+
+    .eip-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--bs-secondary-color);
+        text-decoration: none;
+        border-radius: 8px 8px 0 0;
+        border: 1px solid transparent;
+        border-bottom: none;
+        transition: all 0.15s;
+        position: relative;
+        bottom: -2px;
+    }
+
+    .eip-tab:hover {
+        color: var(--bs-body-color);
+        background: var(--bs-tertiary-bg);
+        border-color: var(--bs-border-color);
+    }
+
+    .eip-tab.active {
+        color: #1a4b8c;
+        background: var(--bs-body-bg);
+        border-color: var(--bs-border-color);
+        border-bottom-color: var(--bs-body-bg);
+        font-weight: 600;
+    }
+
+    [data-bs-theme="dark"] .eip-tab.active {
+        color: #7eaaff;
+        background: var(--bs-body-bg);
+        border-color: var(--bs-border-color);
+        border-bottom-color: var(--bs-body-bg);
+    }
+
+    .eip-tab .tab-badge {
+        background: var(--bs-secondary-bg);
+        color: var(--bs-secondary-color);
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-weight: 500;
+    }
+
+    .eip-tab.active .tab-badge {
+        background: #e8f0fe;
+        color: #1a4b8c;
+    }
+
+    [data-bs-theme="dark"] .eip-tab.active .tab-badge {
+        background: #1e3a5f;
+        color: #7eaaff;
+    }
+
+    /* Table scrollable à hauteur fixe */
+    .table-scroll {
+        max-height: 280px;
+        overflow-y: auto;
+    }
+
+    .table-scroll::-webkit-scrollbar { width: 4px; }
+    .table-scroll::-webkit-scrollbar-track { background: transparent; }
+    .table-scroll::-webkit-scrollbar-thumb { background: var(--bs-border-color); border-radius: 2px; }
+
+    /* Fiche onglet scrollable */
+    .fiche-scroll {
+        max-height: 340px;
+        overflow-y: auto;
+    }
+
+    .fiche-scroll::-webkit-scrollbar { width: 4px; }
+    .fiche-scroll::-webkit-scrollbar-track { background: transparent; }
+    .fiche-scroll::-webkit-scrollbar-thumb { background: var(--bs-border-color); border-radius: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-person me-2"></i>{{ client.raison_sociale }}</h4>
+</div>
+
+<!-- Résumé financier -->
+<div class="row g-3 mb-3">
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-folder2-open" style="font-size:16px;color:#1a4b8c;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Dossiers en cours</div>
+                    <div class="fw-bold">{{ dossiers_en_cours }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-graph-up" style="font-size:16px;color:#198754;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">CA total</div>
+                    <div class="fw-bold">{{ ca_total|floatformat:0 }} XPF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;{% if solde_du > 0 %}background:#fff3e0;{% else %}background:#e8f5e9;{% endif %}display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-cash-stack" style="font-size:16px;{% if solde_du > 0 %}color:#fd7e14;{% else %}color:#198754;{% endif %}"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Solde dû</div>
+                    <div class="fw-bold {% if solde_du > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ solde_du|floatformat:0 }} XPF
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Card principale avec onglets -->
+<div class="card border-0 shadow-sm">
+
+    <!-- Onglets -->
+    <div class="eip-tabs">
+        <a href="?onglet=fiche" class="eip-tab {% if not request.GET.onglet or request.GET.onglet == 'fiche' %}active{% endif %}">
+            <i class="bi bi-person"></i> Fiche client
+        </a>
+        <a href="?onglet=devis" class="eip-tab {% if request.GET.onglet == 'devis' %}active{% endif %}">
+            <i class="bi bi-file-text"></i> Devis
+            <span class="tab-badge">{{ nb_devis }}</span>
+        </a>
+        <a href="?onglet=dossiers" class="eip-tab {% if request.GET.onglet == 'dossiers' %}active{% endif %}">
+            <i class="bi bi-folder2-open"></i> Dossiers FAB
+            <span class="tab-badge">{{ nb_dossiers }}</span>
+        </a>
+        <a href="?onglet=factures" class="eip-tab {% if request.GET.onglet == 'factures' %}active{% endif %}">
+            <i class="bi bi-receipt"></i> Factures
+            <span class="tab-badge">{{ nb_factures }}</span>
+            {% if solde_du > 0 %}
+            <span class="badge bg-danger" style="font-size:10px;">{{ solde_du|floatformat:0 }} XPF</span>
+            {% endif %}
+        </a>
+        <a href="?onglet=livraisons" class="eip-tab {% if request.GET.onglet == 'livraisons' %}active{% endif %}">
+            <i class="bi bi-truck"></i> Livraisons
+            <span class="tab-badge">{{ nb_livraisons }}</span>
+        </a>
+    </div>
+
+    <div class="card-body p-0">
+
+        <!-- ══ ONGLET FICHE ══════════════════════════════════════ -->
+        {% if not request.GET.onglet or request.GET.onglet == 'fiche' %}
+        <div class="p-3">
+            <div class="row g-3">
+
+                <!-- Informations -->
+                <div class="col-lg-4">
+                    <div class="card border-0 bg-body-secondary h-100">
+                        <div class="card-header bg-transparent fw-semibold border-0 pt-3 d-flex justify-content-between align-items-center">
+                            <span style="font-size:13px;"><i class="bi bi-info-circle me-2 text-primary"></i>Informations</span>
+                            <a href="{% url 'clients:update' client.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
+                                <tr>
+                                    <td class="text-muted" style="width:40%">RIDET</td>
+                                    <td>{{ client.siret|default:"—" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Email</td>
+                                    <td>{{ client.email|default:"—" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Téléphone</td>
+                                    <td>{{ client.telephone|default:"—" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Statut</td>
+                                    <td>
+                                        {% if client.actif %}
+                                        <span class="badge bg-success">Actif</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactif</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if client.notes %}
+                                <tr>
+                                    <td class="text-muted">Notes</td>
+                                    <td>{{ client.notes }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contacts -->
+                <div class="col-lg-4">
+                    <div class="card border-0 bg-body-secondary h-100">
+                        <div class="card-header bg-transparent fw-semibold border-0 pt-3 d-flex justify-content-between align-items-center">
+                            <span style="font-size:13px;"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Contacts</span>
+                            <a href="{% url 'clients:contact_create' client.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-plus-lg"></i>
+                            </a>
+                        </div>
+                        <div class="fiche-scroll">
+                            <ul class="list-group list-group-flush" style="font-size:13px;">
+                                {% for contact in client.contacts.all %}
+                                <li class="list-group-item bg-transparent">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="fw-semibold">
+                                                {{ contact.prenom }} {{ contact.nom }}
+                                                {% if contact.is_principal %}
+                                                <span class="badge bg-primary ms-1" style="font-size:10px;">Principal</span>
+                                                {% endif %}
+                                            </div>
+                                            {% if contact.poste %}<div class="text-muted small">{{ contact.poste }}</div>{% endif %}
+                                            {% if contact.email %}<div class="small"><i class="bi bi-envelope me-1"></i>{{ contact.email }}</div>{% endif %}
+                                            {% if contact.telephone %}<div class="small"><i class="bi bi-telephone me-1"></i>{{ contact.telephone }}</div>{% endif %}
+                                            {% if contact.telephone_mobile %}<div class="small"><i class="bi bi-phone me-1"></i>{{ contact.telephone_mobile }}</div>{% endif %}
+                                        </div>
+                                        <div class="d-flex gap-1 ms-2">
+                                            <a href="{% url 'clients:contact_update' client.pk contact.pk %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <form method="post" action="{% url 'clients:contact_delete' client.pk contact.pk %}" onsubmit="return confirm('Supprimer ce contact ?')">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </li>
+                                {% empty %}
+                                <li class="list-group-item bg-transparent text-muted text-center py-3">Aucun contact</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Adresses -->
+                <div class="col-lg-4">
+                    <div class="card border-0 bg-body-secondary h-100">
+                        <div class="card-header bg-transparent fw-semibold border-0 pt-3 d-flex justify-content-between align-items-center">
+                            <span style="font-size:13px;"><i class="bi bi-geo-alt me-2 text-primary"></i>Adresses de livraison</span>
+                            <a href="{% url 'clients:adresse_create' client.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-plus-lg"></i>
+                            </a>
+                        </div>
+                        <div class="fiche-scroll">
+                            <ul class="list-group list-group-flush" style="font-size:13px;">
+                                {% for adresse in client.adresses.all %}
+                                <li class="list-group-item bg-transparent">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="fw-semibold">
+                                                {{ adresse.libelle }}
+                                                {% if adresse.is_default %}<span class="badge bg-primary ms-1" style="font-size:10px;">Défaut</span>{% endif %}
+                                            </div>
+                                            <div class="text-muted small">{{ adresse.adresse }}</div>
+                                            {% if adresse.complement %}<div class="text-muted small">{{ adresse.complement }}</div>{% endif %}
+                                            <div class="text-muted small">{{ adresse.code_postal }} {{ adresse.ville }}</div>
+                                            <div class="text-muted small">{{ adresse.pays }}</div>
+                                        </div>
+                                        <div class="d-flex gap-1 ms-2">
+                                            <a href="{% url 'clients:adresse_update' client.pk adresse.pk %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <form method="post" action="{% url 'clients:adresse_delete' client.pk adresse.pk %}" onsubmit="return confirm('Supprimer cette adresse ?')">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </li>
+                                {% empty %}
+                                <li class="list-group-item bg-transparent text-muted text-center py-3">Aucune adresse</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ══ FILTRES ════════════════════════════════════════════ -->
+        {% if request.GET.onglet == 'devis' or request.GET.onglet == 'dossiers' or request.GET.onglet == 'factures' or request.GET.onglet == 'livraisons' %}
+        <div class="px-3 pt-3 pb-2 border-bottom">
+            <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+                <input type="hidden" name="onglet" value="{{ request.GET.onglet }}">
+
+                {% if request.GET.onglet == 'factures' %}
+                <select name="statut" class="form-select form-select-sm" style="width:auto;">
+                    <option value="">Tous les statuts</option>
+                    <option value="brouillon" {% if request.GET.statut == 'brouillon' %}selected{% endif %}>Brouillon</option>
+                    <option value="emise" {% if request.GET.statut == 'emise' %}selected{% endif %}>Émise</option>
+                    <option value="payee" {% if request.GET.statut == 'payee' %}selected{% endif %}>Payée</option>
+                    <option value="annulee" {% if request.GET.statut == 'annulee' %}selected{% endif %}>Annulée</option>
+                    <option value="avoir" {% if request.GET.statut == 'avoir' %}selected{% endif %}>Avoir</option>
+                </select>
+                {% elif request.GET.onglet == 'livraisons' %}
+                <select name="statut" class="form-select form-select-sm" style="width:auto;">
+                    <option value="">Tous les statuts</option>
+                    <option value="prepare" {% if request.GET.statut == 'prepare' %}selected{% endif %}>Préparé</option>
+                    <option value="expedie" {% if request.GET.statut == 'expedie' %}selected{% endif %}>Expédié</option>
+                    <option value="livre" {% if request.GET.statut == 'livre' %}selected{% endif %}>Livré</option>
+                    <option value="partiel" {% if request.GET.statut == 'partiel' %}selected{% endif %}>Partiel</option>
+                </select>
+                {% else %}
+                <select name="statut" class="form-select form-select-sm" style="width:auto;">
+                    <option value="">Tous les statuts</option>
+                    <option value="brouillon" {% if request.GET.statut == 'brouillon' %}selected{% endif %}>Brouillon</option>
+                    <option value="devis_envoye" {% if request.GET.statut == 'devis_envoye' %}selected{% endif %}>Devis envoyé</option>
+                    <option value="accepte" {% if request.GET.statut == 'accepte' %}selected{% endif %}>Accepté</option>
+                    <option value="en_fabrication" {% if request.GET.statut == 'en_fabrication' %}selected{% endif %}>En fabrication</option>
+                    <option value="expedie" {% if request.GET.statut == 'expedie' %}selected{% endif %}>Expédié</option>
+                    <option value="facture" {% if request.GET.statut == 'facture' %}selected{% endif %}>Facturé</option>
+                    <option value="annule" {% if request.GET.statut == 'annule' %}selected{% endif %}>Annulé</option>
+                    <option value="archive" {% if request.GET.statut == 'archive' %}selected{% endif %}>Archivé</option>
+                </select>
+                {% endif %}
+
+                <select name="periode" class="form-select form-select-sm" style="width:auto;">
+                    <option value="">Toutes périodes</option>
+                    <option value="mois" {% if request.GET.periode == 'mois' %}selected{% endif %}>Ce mois</option>
+                    <option value="trimestre" {% if request.GET.periode == 'trimestre' %}selected{% endif %}>Ce trimestre</option>
+                    <option value="annee" {% if request.GET.periode == 'annee' %}selected{% endif %}>Cette année</option>
+                    <option value="annee_derniere" {% if request.GET.periode == 'annee_derniere' %}selected{% endif %}>Année dernière</option>
+                    <option value="personnalise" {% if request.GET.periode == 'personnalise' %}selected{% endif %}>Personnalisé</option>
+                </select>
+
+                {% if request.GET.periode == 'personnalise' %}
+                <input type="date" name="date_debut" value="{{ request.GET.date_debut }}" class="form-control form-control-sm" style="width:auto;">
+                <input type="date" name="date_fin" value="{{ request.GET.date_fin }}" class="form-control form-control-sm" style="width:auto;">
+                {% endif %}
+
+                <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-search"></i></button>
+                {% if request.GET.statut or request.GET.periode %}
+                <a href="?onglet={{ request.GET.onglet }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></a>
+                {% endif %}
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- ══ ONGLET DEVIS ══════════════════════════════════════ -->
+        {% if request.GET.onglet == 'devis' %}
+        <div class="table-scroll">
+            <table class="table table-hover table-sm mb-0" style="font-size:13px;">
+                <thead style="position:sticky;top:0;z-index:1;background:var(--bs-body-bg);">
+                    <tr>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Numéro</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Statut</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Priorité</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Livraison prévue</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Créé le</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dossier in devis %}
+                    <tr style="cursor:pointer;" onclick="window.location='{% url 'dossiers:detail' dossier.pk %}'">
+                        <td style="padding:5px 14px;" class="fw-semibold">{{ dossier.numero }}</td>
+                        <td style="padding:5px 14px;"><span class="badge badge-{{ dossier.statut }}">{{ dossier.get_statut_display }}</span></td>
+                        <td style="padding:5px 14px;"><span class="badge badge-{{ dossier.priorite }}">{{ dossier.get_priorite_display }}</span></td>
+                        <td style="padding:5px 14px;">{{ dossier.date_livraison_prevue|date:"d/m/Y"|default:"—" }}</td>
+                        <td style="padding:5px 14px;">{{ dossier.created_at|date:"d/m/Y" }}</td>
+                        <td style="padding:5px 14px;" class="text-end" onclick="event.stopPropagation()">
+                            <a href="#" class="btn btn-sm btn-outline-secondary" title="Imprimer le devis"><i class="bi bi-printer"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-3" style="font-size:13px;">Aucun devis.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- ══ ONGLET DOSSIERS FAB ═══════════════════════════════ -->
+        {% if request.GET.onglet == 'dossiers' %}
+        <div class="table-scroll">
+            <table class="table table-hover table-sm mb-0" style="font-size:13px;">
+                <thead style="position:sticky;top:0;z-index:1;background:var(--bs-body-bg);">
+                    <tr>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Numéro</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Statut</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Priorité</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Livraison prévue</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Créé le</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dossier in dossiers_fab %}
+                    <tr style="cursor:pointer;" onclick="window.location='{% url 'dossiers:detail' dossier.pk %}'">
+                        <td style="padding:5px 14px;" class="fw-semibold">{{ dossier.numero }}</td>
+                        <td style="padding:5px 14px;"><span class="badge badge-{{ dossier.statut }}">{{ dossier.get_statut_display }}</span></td>
+                        <td style="padding:5px 14px;"><span class="badge badge-{{ dossier.priorite }}">{{ dossier.get_priorite_display }}</span></td>
+                        <td style="padding:5px 14px;">{{ dossier.date_livraison_prevue|date:"d/m/Y"|default:"—" }}</td>
+                        <td style="padding:5px 14px;">{{ dossier.created_at|date:"d/m/Y" }}</td>
+                        <td style="padding:5px 14px;" class="text-end" onclick="event.stopPropagation()">
+                            <a href="#" class="btn btn-sm btn-outline-secondary" title="Imprimer le dossier FAB"><i class="bi bi-printer"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-3" style="font-size:13px;">Aucun dossier FAB.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- ══ ONGLET FACTURES ═══════════════════════════════════ -->
+        {% if request.GET.onglet == 'factures' %}
+        <div class="table-scroll">
+            <table class="table table-hover table-sm mb-0" style="font-size:13px;">
+                <thead style="position:sticky;top:0;z-index:1;background:var(--bs-body-bg);">
+                    <tr>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Numéro</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Statut</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Montant TTC</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Échéance</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Émise le</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for facture in factures %}
+                    <tr style="cursor:pointer;" onclick="window.location='{% url 'facturation:detail' facture.pk %}'">
+                        <td style="padding:5px 14px;" class="fw-semibold">{{ facture.numero }}</td>
+                        <td style="padding:5px 14px;">
+                            {% if facture.statut == 'emise' and facture.date_echeance and facture.date_echeance < today %}
+                            <span class="badge bg-danger">En retard</span>
+                            {% elif facture.statut == 'payee' %}
+                            <span class="badge bg-success">Payée</span>
+                            {% elif facture.statut == 'emise' %}
+                            <span class="badge bg-warning text-dark">Émise</span>
+                            {% elif facture.statut == 'avoir' %}
+                            <span class="badge bg-info text-dark">Avoir</span>
+                            {% elif facture.statut == 'annulee' %}
+                            <span class="badge bg-secondary">Annulée</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ facture.get_statut_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding:5px 14px;" class="fw-semibold">{{ facture.montant_ttc|floatformat:0 }} XPF</td>
+                        <td style="padding:5px 14px;">
+                            {% if facture.date_echeance %}
+                                {% if facture.statut == 'emise' and facture.date_echeance < today %}
+                                <span class="text-danger fw-semibold">{{ facture.date_echeance|date:"d/m/Y" }}</span>
+                                {% else %}
+                                {{ facture.date_echeance|date:"d/m/Y" }}
+                                {% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td style="padding:5px 14px;">{{ facture.date_emission|date:"d/m/Y"|default:"—" }}</td>
+                        <td style="padding:5px 14px;" class="text-end" onclick="event.stopPropagation()">
+                            <a href="#" class="btn btn-sm btn-outline-secondary" title="Imprimer la facture"><i class="bi bi-printer"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-3" style="font-size:13px;">Aucune facture.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- ══ ONGLET LIVRAISONS ═════════════════════════════════ -->
+        {% if request.GET.onglet == 'livraisons' %}
+        <div class="table-scroll">
+            <table class="table table-hover table-sm mb-0" style="font-size:13px;">
+                <thead style="position:sticky;top:0;z-index:1;background:var(--bs-body-bg);">
+                    <tr>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Dossier</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Type</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Transporteur</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Statut</th>
+                        <th style="padding:8px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--bs-secondary-color);">Date expédition</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bl in livraisons %}
+                    <tr style="cursor:pointer;" onclick="window.location='{% url 'livraisons:detail' bl.pk %}'">
+                        <td style="padding:5px 14px;" class="fw-semibold">{{ bl.dossier.numero }}</td>
+                        <td style="padding:5px 14px;">{{ bl.get_type_transport_display }}</td>
+                        <td style="padding:5px 14px;">{{ bl.transporteur|default:"—" }}</td>
+                        <td style="padding:5px 14px;">
+                            {% if bl.statut == 'livre' %}
+                            <span class="badge bg-success">Livré</span>
+                            {% elif bl.statut == 'expedie' %}
+                            <span class="badge bg-primary">Expédié</span>
+                            {% elif bl.statut == 'partiel' %}
+                            <span class="badge bg-warning text-dark">Partiel</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Préparé</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding:5px 14px;">{{ bl.date_expedition|date:"d/m/Y"|default:"—" }}</td>
+                        <td style="padding:5px 14px;" class="text-end" onclick="event.stopPropagation()">
+                            <a href="#" class="btn btn-sm btn-outline-secondary" title="Imprimer le bon de livraison"><i class="bi bi-printer"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-3" style="font-size:13px;">Aucune livraison.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}
