@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EIP Imprimerie{% endblock %}</title>
+
+    {% load static %}
+    <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <script>
+        (function() {
+            const dark = localStorage.getItem('darkMode') === 'true';
+            document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+            const sidebarOpen = localStorage.getItem('sidebarOpen') !== 'false';
+            if (!sidebarOpen) {
+                document.documentElement.classList.add('sidebar-collapsed');
+            }
+        })();
+    </script>
+
+    <style>
+        :root {
+            --eip-blue:    #1a4b8c;
+            --eip-pink:    #e91e8c;
+            --eip-yellow:  #f5c400;
+            --sidebar-width: 220px;
+            --sidebar-collapsed-width: 52px;
+            --topbar-height: 56px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: #1e1e2e;
+            transition: width 0.25s ease;
+            z-index: 1000;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        html.sidebar-collapsed #sidebar { width: var(--sidebar-collapsed-width); }
+        html.sidebar-collapsed #topbar  { left: var(--sidebar-collapsed-width); }
+        html.sidebar-collapsed #main-content { left: var(--sidebar-collapsed-width); }
+
+        #sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+        #topbar.collapsed { left: var(--sidebar-collapsed-width); }
+        #main-content.collapsed { left: var(--sidebar-collapsed-width); }
+
+        .sidebar-toggle-zone {
+            height: var(--topbar-height);
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            flex-shrink: 0;
+            gap: 10px;
+            overflow: hidden;
+        }
+
+        .sidebar-toggle-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .sidebar-toggle-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .sidebar-toggle-btn i { font-size: 20px; }
+
+        .sidebar-app-title {
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            white-space: nowrap;
+            opacity: 1;
+            transition: opacity 0.2s;
+            letter-spacing: 0.3px;
+        }
+
+        #sidebar.collapsed .sidebar-app-title,
+        html.sidebar-collapsed .sidebar-app-title {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 8px 0;
+        }
+
+        .sidebar-section-title {
+            color: rgba(255,255,255,0.3);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 12px 14px 4px;
+            white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+
+        #sidebar.collapsed .sidebar-section-title,
+        html.sidebar-collapsed .sidebar-section-title {
+            opacity: 0;
+            height: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .sidebar-nav .nav-item a,
+        .sidebar-bottom a {
+            display: flex;
+            align-items: center;
+            padding: 9px 14px;
+            color: rgba(255,255,255,0.55);
+            text-decoration: none;
+            white-space: nowrap;
+            transition: background 0.15s, color 0.15s;
+            gap: 12px;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-nav .nav-item a:hover,
+        .sidebar-bottom a:hover {
+            background: rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.9);
+        }
+
+        .sidebar-nav .nav-item a.active,
+        .sidebar-bottom a.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-left: 3px solid var(--eip-pink);
+        }
+
+        .sidebar-nav .nav-item a i,
+        .sidebar-bottom a i {
+            font-size: 18px;
+            flex-shrink: 0;
+            width: 22px;
+            text-align: center;
+        }
+
+        .sidebar-nav .nav-item a .nav-label,
+        .sidebar-bottom a .nav-label {
+            font-size: 13px;
+            opacity: 1;
+            transition: opacity 0.15s;
+            white-space: nowrap;
+        }
+
+        #sidebar.collapsed .sidebar-nav .nav-item a .nav-label,
+        html.sidebar-collapsed .sidebar-nav .nav-item a .nav-label,
+        #sidebar.collapsed .sidebar-bottom a .nav-label,
+        html.sidebar-collapsed .sidebar-bottom a .nav-label {
+            opacity: 0;
+            width: 0;
+            pointer-events: none;
+        }
+
+        #sidebar.collapsed .sidebar-nav .nav-item a,
+        html.sidebar-collapsed .sidebar-nav .nav-item a,
+        #sidebar.collapsed .sidebar-bottom a,
+        html.sidebar-collapsed .sidebar-bottom a {
+            justify-content: center;
+            padding: 12px 0;
+        }
+
+        .sidebar-bottom {
+            border-top: 1px solid rgba(255,255,255,0.07);
+            flex-shrink: 0;
+        }
+
+        #topbar {
+            position: fixed;
+            top: 0;
+            left: var(--sidebar-width);
+            right: 0;
+            height: var(--topbar-height);
+            background: var(--bs-body-bg);
+            border-bottom: 1px solid var(--bs-border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 999;
+            transition: left 0.25s ease;
+            gap: 12px;
+        }
+
+        #main-content {
+            position: fixed;
+            top: var(--topbar-height);
+            left: var(--sidebar-width);
+            right: 0;
+            bottom: 0;
+            padding: 24px;
+            overflow-y: auto;
+            transition: left 0.25s ease;
+        }
+
+        #loading-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 3px;
+            background: var(--eip-pink);
+            z-index: 9999;
+            transition: width 0.3s ease;
+        }
+
+        .topbar-dropdown { position: relative; }
+
+        .topbar-dropdown .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            display: none;
+            z-index: 9999;
+        }
+
+        .topbar-dropdown.open .dropdown-menu { display: block; }
+
+        /* ── Toast notifications ──────────────────────────────── */
+        #toast-container {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 300px;
+            max-width: 400px;
+        }
+
+        .eip-toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            font-size: 13px;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+            cursor: pointer;
+        }
+
+        .eip-toast.success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .eip-toast.error   { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+        .eip-toast.warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+        .eip-toast.info    { background: #dbeafe; color: #1e40af; border-left: 4px solid #3b82f6; }
+
+        [data-bs-theme="dark"] .eip-toast.success { background: #064e3b; color: #6ee7b7; }
+        [data-bs-theme="dark"] .eip-toast.error   { background: #7f1d1d; color: #fca5a5; }
+        [data-bs-theme="dark"] .eip-toast.warning { background: #78350f; color: #fcd34d; }
+        [data-bs-theme="dark"] .eip-toast.info    { background: #1e3a5f; color: #93c5fd; }
+
+        .eip-toast i { font-size: 18px; flex-shrink: 0; }
+        .eip-toast .toast-close { margin-left: auto; background: none; border: none; cursor: pointer; opacity: 0.5; font-size: 16px; color: inherit; padding: 0; line-height: 1; }
+        .eip-toast .toast-close:hover { opacity: 1; }
+
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+        /* ── Onglets EIP ──────────────────────────────────────── */
+        .eip-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px 0;
+            border-bottom: 2px solid var(--bs-border-color);
+            flex-wrap: wrap;
+        }
+
+        .eip-tab {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--bs-secondary-color);
+            text-decoration: none;
+            border-radius: 8px 8px 0 0;
+            border: 1px solid transparent;
+            border-bottom: none;
+            transition: all 0.15s;
+            position: relative;
+            bottom: -2px;
+        }
+
+        .eip-tab:hover {
+            color: var(--bs-body-color);
+            background: var(--bs-tertiary-bg);
+            border-color: var(--bs-border-color);
+        }
+
+        .eip-tab.active {
+            color: #1a4b8c;
+            background: var(--bs-body-bg);
+            border-color: var(--bs-border-color);
+            border-bottom-color: var(--bs-body-bg);
+            font-weight: 600;
+        }
+
+        [data-bs-theme="dark"] .eip-tab.active {
+            color: #7eaaff;
+            background: var(--bs-body-bg);
+            border-color: var(--bs-border-color);
+            border-bottom-color: var(--bs-body-bg);
+        }
+
+        .eip-tab .tab-badge {
+            background: var(--bs-secondary-bg);
+            color: var(--bs-secondary-color);
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .eip-tab.active .tab-badge {
+            background: #e8f0fe;
+            color: #1a4b8c;
+        }
+
+        [data-bs-theme="dark"] .eip-tab.active .tab-badge {
+            background: #1e3a5f;
+            color: #7eaaff;
+        }
+
+        /* ── Tables scrollables ───────────────────────────────── */
+        .table-scroll {
+            max-height: calc(100vh - 340px);
+            overflow-y: auto;
+        }
+
+        .table-scroll::-webkit-scrollbar { width: 4px; }
+        .table-scroll::-webkit-scrollbar-track { background: transparent; }
+        .table-scroll::-webkit-scrollbar-thumb { background: var(--bs-border-color); border-radius: 2px; }
+
+        .table-scroll thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: var(--bs-body-bg);
+        }
+
+        /* Style entête tableau uniforme */
+        .eip-th {
+            padding: 8px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--bs-secondary-color);
+            border-bottom: 1px solid var(--bs-border-color);
+        }
+
+        .eip-td {
+            padding: 5px 14px;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        /* Listes scrollables (contacts, adresses) */
+        .list-scroll {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .list-scroll::-webkit-scrollbar { width: 4px; }
+        .list-scroll::-webkit-scrollbar-track { background: transparent; }
+        .list-scroll::-webkit-scrollbar-thumb { background: var(--bs-border-color); border-radius: 2px; }
+
+        /* ── Badges statuts ───────────────────────────────────── */
+        .badge-brouillon      { background: #6c757d !important; }
+        .badge-devis_envoye   { background: #0d6efd !important; }
+        .badge-accepte        { background: #198754 !important; }
+        .badge-en_fabrication { background: #f5c400 !important; color: #000 !important; }
+        .badge-expedie        { background: #0dcaf0 !important; color: #000 !important; }
+        .badge-facture        { background: #6610f2 !important; }
+        .badge-annule         { background: #dc3545 !important; }
+        .badge-archive        { background: #343a40 !important; }
+        .badge-normal         { background: #6c757d !important; }
+        .badge-urgent         { background: #fd7e14 !important; }
+        .badge-tres_urgent    { background: #dc3545 !important; }
+
+        [data-bs-theme="dark"] #topbar { background: #12121f; }
+
+        .sidebar-nav::-webkit-scrollbar { width: 3px; }
+        .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body x-data="{
+        darkMode: localStorage.getItem('darkMode') === 'true'
+      }"
+      x-init="$el.closest('html').setAttribute('data-bs-theme', darkMode ? 'dark' : 'light')"
+      x-effect="
+        $el.closest('html').setAttribute('data-bs-theme', darkMode ? 'dark' : 'light');
+        localStorage.setItem('darkMode', darkMode);
+      ">
+
+    {% load static %}
+
+    <div id="loading-bar"></div>
+
+    <div id="toast-container">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="eip-toast {% if message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% elif message.tags == 'success' %}success{% else %}info{% endif %}"
+                 onclick="this.remove()">
+                <i class="bi {% if message.tags == 'error' %}bi-x-circle-fill{% elif message.tags == 'warning' %}bi-exclamation-triangle-fill{% elif message.tags == 'success' %}bi-check-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+                <span>{{ message }}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- ═══ SIDEBAR ═══════════════════════════════════════════ -->
+    <nav id="sidebar">
+
+        <div class="sidebar-toggle-zone">
+            <button class="sidebar-toggle-btn" id="sidebar-toggle-btn">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="sidebar-app-title">EIP Imprimerie</span>
+        </div>
+
+        <div class="sidebar-nav">
+
+            <div class="sidebar-section-title">Principal</div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a href="{% url 'accounts:dashboard' %}" data-path="/">
+                        <i class="bi bi-speedometer2"></i>
+                        <span class="nav-label">Tableau de bord</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-section-title">Gestion</div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a href="{% url 'clients:list' %}" data-path="/clients/">
+                        <i class="bi bi-people"></i>
+                        <span class="nav-label">Clients</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'dossiers:list' %}" data-path="/dossiers/">
+                        <i class="bi bi-folder2-open"></i>
+                        <span class="nav-label">Devis & Dossiers</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'planning:index' %}" data-path="/planning/">
+                        <i class="bi bi-calendar3"></i>
+                        <span class="nav-label">Planning</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-section-title">Stock & Achats</div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a href="{% url 'articles:list' %}" data-path="/articles/">
+                        <i class="bi bi-box-seam"></i>
+                        <span class="nav-label">Articles & Stock</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'achats:list' %}" data-path="/achats/">
+                        <i class="bi bi-cart3"></i>
+                        <span class="nav-label">Achats</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-section-title">Finance</div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a href="{% url 'facturation:list' %}" data-path="/facturation/">
+                        <i class="bi bi-receipt"></i>
+                        <span class="nav-label">Facturation</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'livraisons:list' %}" data-path="/livraisons/">
+                        <i class="bi bi-truck"></i>
+                        <span class="nav-label">Livraisons</span>
+                    </a>
+                </li>
+            </ul>
+
+        </div>
+
+        <div class="sidebar-bottom">
+            <a href="{% url 'parametres:index' %}" data-path="/parametres/">
+                <i class="bi bi-gear"></i>
+                <span class="nav-label">Paramètres</span>
+            </a>
+        </div>
+
+    </nav>
+
+    <!-- ═══ TOPBAR ════════════════════════════════════════════ -->
+    <header id="topbar">
+
+        <nav aria-label="breadcrumb" class="flex-grow-1">
+            <ol class="breadcrumb mb-0">
+                {% block breadcrumb %}
+                <li class="breadcrumb-item active">Tableau de bord</li>
+                {% endblock %}
+            </ol>
+        </nav>
+
+        <div class="topbar-dropdown" id="dropdown-notif">
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleDropdown('dropdown-notif')">
+                <i class="bi bi-bell"></i>
+            </button>
+            <ul class="dropdown-menu" style="min-width: 300px;">
+                <li><h6 class="dropdown-header">Notifications</h6></li>
+                <li><a class="dropdown-item text-muted small" href="{% url 'notifications:list' %}">Voir toutes les notifications</a></li>
+            </ul>
+        </div>
+
+        <button class="btn btn-sm btn-outline-secondary" @click="darkMode = !darkMode" :title="darkMode ? 'Mode clair' : 'Mode sombre'">
+            <i class="bi" :class="darkMode ? 'bi-sun' : 'bi-moon'"></i>
+        </button>
+
+        <div class="topbar-dropdown" id="dropdown-user">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" onclick="toggleDropdown('dropdown-user')">
+                <i class="bi bi-person-circle me-1"></i>
+                {{ request.user.username }}
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Mon profil</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form method="post" action="{% url 'accounts:logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="dropdown-item text-danger">
+                            <i class="bi bi-box-arrow-right me-2"></i>Déconnexion
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+
+    </header>
+
+    <!-- ═══ MAIN ══════════════════════════════════════════════ -->
+    <main id="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <script>
+        const sidebar     = document.getElementById('sidebar');
+        const topbar      = document.getElementById('topbar');
+        const mainContent = document.getElementById('main-content');
+        const toggleBtn   = document.getElementById('sidebar-toggle-btn');
+
+        function applySidebar(open) {
+            if (open) {
+                sidebar.classList.remove('collapsed');
+                topbar.classList.remove('collapsed');
+                mainContent.classList.remove('collapsed');
+                document.documentElement.classList.remove('sidebar-collapsed');
+            } else {
+                sidebar.classList.add('collapsed');
+                topbar.classList.add('collapsed');
+                mainContent.classList.add('collapsed');
+                document.documentElement.classList.add('sidebar-collapsed');
+            }
+        }
+
+        applySidebar(localStorage.getItem('sidebarOpen') !== 'false');
+
+        toggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            const isOpen = !sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarOpen', String(!isOpen));
+            applySidebar(!isOpen);
+        });
+
+        sidebar.addEventListener('click', function(e) {
+            if (e.target !== toggleBtn && !toggleBtn.contains(e.target)) {
+                e.stopPropagation();
+            }
+        });
+
+        function toggleDropdown(id) {
+            const el = document.getElementById(id);
+            const isOpen = el.classList.contains('open');
+            document.querySelectorAll('.topbar-dropdown').forEach(d => d.classList.remove('open'));
+            if (!isOpen) el.classList.add('open');
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.topbar-dropdown')) {
+                document.querySelectorAll('.topbar-dropdown').forEach(d => d.classList.remove('open'));
+            }
+        });
+
+        function updateActiveNav() {
+            const path = window.location.pathname;
+            document.querySelectorAll('#sidebar a[data-path]').forEach(link => {
+                const linkPath = link.getAttribute('data-path');
+                link.classList.remove('active');
+                if (linkPath === '/' && path === '/') {
+                    link.classList.add('active');
+                } else if (linkPath !== '/' && path.startsWith(linkPath)) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', updateActiveNav);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.eip-toast').forEach(function(toast) {
+                setTimeout(function() {
+                    toast.style.animation = 'slideOut 0.3s ease forwards';
+                    setTimeout(() => toast.remove(), 300);
+                }, 4000);
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+
+</body>
+</html>

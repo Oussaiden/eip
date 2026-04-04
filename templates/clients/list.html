@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Clients — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Clients</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-people me-2"></i>Clients</h4>
+    <a href="{% url 'clients:create' %}" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Nouveau client
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 align-items-center">
+            <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="Rechercher un client...">
+            <select name="actif" class="form-select form-select-sm" style="width:auto;min-width:140px;">
+                <option value="" {% if actif_filter == '' %}selected{% endif %}>Tous les clients</option>
+                <option value="1" {% if actif_filter == '1' %}selected{% endif %}>Actifs uniquement</option>
+                <option value="0" {% if actif_filter == '0' %}selected{% endif %}>Inactifs uniquement</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-search"></i>
+            </button>
+            {% if search or actif_filter %}
+            <a href="{% url 'clients:list' %}" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-x"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-scroll">
+        <table class="table table-hover table-sm mb-0">
+            <thead>
+                <tr>
+                    <th class="eip-th">Raison sociale</th>
+                    <th class="eip-th">Email</th>
+                    <th class="eip-th">Téléphone</th>
+                    <th class="eip-th">Contacts</th>
+                    <th class="eip-th">Statut</th>
+                    <th class="eip-th"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in clients %}
+                <tr style="cursor:pointer;" onclick="window.location='{% url 'clients:detail' client.pk %}'">
+                    <td class="eip-td fw-semibold">{{ client.raison_sociale }}</td>
+                    <td class="eip-td">{{ client.email|default:"—" }}</td>
+                    <td class="eip-td">{{ client.telephone|default:"—" }}</td>
+                    <td class="eip-td"><span class="badge bg-secondary">{{ client.contacts.count }}</span></td>
+                    <td class="eip-td">
+                        {% if client.actif %}
+                        <span class="badge bg-success">Actif</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactif</span>
+                        {% endif %}
+                    </td>
+                    <td class="eip-td text-end">
+                        <a href="{% url 'clients:update' client.pk %}" class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation()">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-3 eip-td">Aucun client trouvé.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+django>=6.0.3
+psycopg2-binary
+django-environ
+redis
+django-redis
+weasyprint
+anthropic
+django-htmx
+whitenoise
+Pillow
