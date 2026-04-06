@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Dossiers FAB — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Dossiers FAB</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-folder2-open me-2"></i>Dossiers FAB</h4>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="Numéro ou client..." style="min-width:200px;">
+            <select name="statut" class="form-select form-select-sm" style="width:auto;">
+                <option value="">Tous les statuts</option>
+                {% for val, lib in statuts %}
+                <option value="{{ val }}" {% if statut == val %}selected{% endif %}>{{ lib }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-search"></i></button>
+            {% if search or statut %}
+            <a href="{% url 'dossiers:dossier_list' %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-scroll">
+        <table class="table table-hover table-sm mb-0">
+            <thead>
+                <tr>
+                    <th class="eip-th">Numéro</th>
+                    <th class="eip-th">Client</th>
+                    <th class="eip-th">Date</th>
+                    <th class="eip-th">Livraison prévue</th>
+                    <th class="eip-th">Priorité</th>
+                    <th class="eip-th">Statut</th>
+                    <th class="eip-th"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dossier in dossiers %}
+                <tr style="cursor:pointer;" onclick="window.location='{% url 'dossiers:dossier_detail' dossier.pk %}'">
+                    <td class="eip-td fw-semibold">{{ dossier.numero }}</td>
+                    <td class="eip-td">{{ dossier.client.raison_sociale }}</td>
+                    <td class="eip-td">{{ dossier.date|date:"d/m/Y" }}</td>
+                    <td class="eip-td">{{ dossier.date_livraison|date:"d/m/Y"|default:"—" }}</td>
+                    <td class="eip-td">
+                        {% if dossier.priorite == 'normal' %}
+                        <span class="badge bg-secondary">Normal</span>
+                        {% elif dossier.priorite == 'urgent' %}
+                        <span class="badge bg-warning text-dark">Urgent</span>
+                        {% elif dossier.priorite == 'tres_urgent' %}
+                        <span class="badge bg-danger">Très urgent</span>
+                        {% endif %}
+                    </td>
+                    <td class="eip-td">
+                        {% if dossier.statut == 'en_fabrication' %}
+                        <span class="badge bg-primary">En fabrication</span>
+                        {% elif dossier.statut == 'termine' %}
+                        <span class="badge bg-success">Terminé</span>
+                        {% elif dossier.statut == 'livre' %}
+                        <span class="badge bg-info text-dark">Livré</span>
+                        {% elif dossier.statut == 'annule' %}
+                        <span class="badge bg-secondary">Annulé</span>
+                        {% endif %}
+                    </td>
+                    <td class="eip-td text-end" onclick="event.stopPropagation()">
+                        <a href="{% url 'dossiers:dossier_detail' dossier.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-3 eip-td">Aucun dossier trouvé.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

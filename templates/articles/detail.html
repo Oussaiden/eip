@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+{% block title %}{{ article.designation }} — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'articles:list' %}">Articles & Stock</a></li>
+<li class="breadcrumb-item active">{{ article.designation }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>{{ article.designation }}</h4>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;{% if article.stock_bas %}background:#fee2e2;{% else %}background:#e8f5e9;{% endif %}display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-box" style="font-size:16px;{% if article.stock_bas %}color:#dc3545;{% else %}color:#198754;{% endif %}"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Stock actuel</div>
+                    <div class="fw-bold {% if article.stock_bas %}text-danger{% endif %}">
+                        {{ article.stock_actuel|floatformat:"-2" }} {{ article.unite.abreviation }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#fff3e0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-exclamation-triangle" style="font-size:16px;color:#fd7e14;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Seuil minimum</div>
+                    <div class="fw-bold">{{ article.seuil_minimum|floatformat:"-2" }} {{ article.unite.abreviation }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-tag" style="font-size:16px;color:#1a4b8c;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">PRU moyen</div>
+                    <div class="fw-bold">{{ article.pru_moyen|floatformat:"-2" }} XPF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-cash-stack" style="font-size:16px;color:#198754;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Valeur stock</div>
+                    <div class="fw-bold">{{ article.valeur_stock|floatformat:"-2" }} XPF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="eip-tabs">
+        <a href="?onglet=info" class="eip-tab {% if not request.GET.onglet or request.GET.onglet == 'info' %}active{% endif %}">
+            <i class="bi bi-info-circle"></i> Informations
+        </a>
+        <a href="?onglet=fournisseurs" class="eip-tab {% if request.GET.onglet == 'fournisseurs' %}active{% endif %}">
+            <i class="bi bi-truck"></i> Fournisseurs
+            <span class="tab-badge">{{ article.fournisseurs.count }}</span>
+        </a>
+        <a href="?onglet=mouvements" class="eip-tab {% if request.GET.onglet == 'mouvements' %}active{% endif %}">
+            <i class="bi bi-arrow-left-right"></i> Mouvements
+            <span class="tab-badge">{{ article.mouvements.count }}</span>
+        </a>
+    </div>
+
+    <div class="card-body p-0">
+
+        {% if not request.GET.onglet or request.GET.onglet == 'info' %}
+        <div class="p-3">
+            <div class="row g-3">
+
+                <div class="col-lg-6">
+                    <div class="card border-0 bg-body-secondary h-100">
+                        <div class="card-header bg-transparent fw-semibold border-0 pt-3 d-flex justify-content-between align-items-center">
+                            <span style="font-size:13px;"><i class="bi bi-info-circle me-2 text-primary"></i>Informations</span>
+                            <div class="d-flex gap-1">
+                                <a href="{% url 'articles:mouvement' article.pk %}" class="btn btn-sm btn-outline-primary" title="Saisir un mouvement">
+                                    <i class="bi bi-plus-slash-minus"></i>
+                                </a>
+                                <a href="{% url 'articles:update' article.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
+                                <tr>
+                                    <td class="text-muted" style="width:40%">Référence</td>
+                                    <td class="fw-semibold">{{ article.reference }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Désignation</td>
+                                    <td>{{ article.designation }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Catégorie</td>
+                                    <td>{{ article.categorie.libelle }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Unité</td>
+                                    <td>{{ article.unite.libelle }} ({{ article.unite.abreviation }})</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Stock actuel</td>
+                                    <td class="fw-semibold {% if article.stock_bas %}text-danger{% endif %}">
+                                        {{ article.stock_actuel|floatformat:"-2" }} {{ article.unite.abreviation }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Seuil minimum</td>
+                                    <td>{{ article.seuil_minimum|floatformat:"-2" }} {{ article.unite.abreviation }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">PRU moyen</td>
+                                    <td>{{ article.pru_moyen|floatformat:"-2" }} XPF</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Valeur stock</td>
+                                    <td class="fw-semibold">{{ article.valeur_stock|floatformat:"-2" }} XPF</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Statut</td>
+                                    <td>
+                                        {% if article.actif %}
+                                        <span class="badge bg-success">Actif</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactif</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if article.notes %}
+                                <tr>
+                                    <td class="text-muted">Notes</td>
+                                    <td>{{ article.notes }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card border-0 bg-body-secondary h-100">
+                        <div class="card-header bg-transparent fw-semibold border-0 pt-3">
+                            <span style="font-size:13px;"><i class="bi bi-graph-up me-2 text-primary"></i>Évolution du stock</span>
+                        </div>
+                        <div class="card-body d-flex align-items-center justify-content-center">
+                            {% if mouvements_graphe %}
+                            <canvas id="stockChart" style="max-height:220px;width:100%;"></canvas>
+                            {% else %}
+                            <div class="text-muted text-center" style="font-size:13px;">
+                                <i class="bi bi-graph-up" style="font-size:32px;opacity:0.3;"></i>
+                                <div class="mt-2">Aucun mouvement enregistré</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        {% endif %}
+
+        {% if request.GET.onglet == 'fournisseurs' %}
+        <div class="p-3">
+            <div class="card border-0 bg-body-secondary">
+                <div class="card-header bg-transparent fw-semibold border-0 pt-3">
+                    <span style="font-size:13px;"><i class="bi bi-truck me-2 text-primary"></i>Fournisseurs</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover mb-0" style="font-size:13px;">
+                        <thead>
+                            <tr>
+                                <th class="eip-th">Fournisseur</th>
+                                <th class="eip-th">Référence fournisseur</th>
+                                <th class="eip-th">Prix unitaire</th>
+                                <th class="eip-th">Préféré</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for af in article.fournisseurs.all %}
+                            <tr>
+                                <td class="eip-td fw-semibold">{{ af.fournisseur.raison_sociale }}</td>
+                                <td class="eip-td">{{ af.reference_fournisseur|default:"—" }}</td>
+                                <td class="eip-td">{{ af.prix_unitaire|floatformat:"-2" }} XPF</td>
+                                <td class="eip-td">
+                                    {% if af.is_prefere %}
+                                    <span class="badge bg-success">Oui</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Non</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted py-3 eip-td">Aucun fournisseur.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if request.GET.onglet == 'mouvements' %}
+        <div class="px-3 pt-3 pb-2 border-bottom">
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <form method="get" class="d-flex gap-2 align-items-center flex-wrap flex-grow-1">
+                    <input type="hidden" name="onglet" value="mouvements">
+                    <select name="type_mouvement" class="form-select form-select-sm" style="width:auto;">
+                        <option value="">Tous les types</option>
+                        <option value="entree" {% if type_mouvement == 'entree' %}selected{% endif %}>Entrée</option>
+                        <option value="sortie" {% if type_mouvement == 'sortie' %}selected{% endif %}>Sortie</option>
+                        <option value="inventaire" {% if type_mouvement == 'inventaire' %}selected{% endif %}>Inventaire</option>
+                    </select>
+                    <input type="date" name="date_debut" value="{{ date_debut }}" class="form-control form-control-sm" style="width:auto;">
+                    <input type="date" name="date_fin" value="{{ date_fin }}" class="form-control form-control-sm" style="width:auto;">
+                    <select name="limite" class="form-select form-select-sm" style="width:auto;">
+                        <option value="20" {% if limite == '20' %}selected{% endif %}>20 lignes</option>
+                        <option value="50" {% if limite == '50' or not limite %}selected{% endif %}>50 lignes</option>
+                        <option value="100" {% if limite == '100' %}selected{% endif %}>100 lignes</option>
+                        <option value="200" {% if limite == '200' %}selected{% endif %}>200 lignes</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-search"></i></button>
+                    {% if type_mouvement or date_debut or date_fin %}
+                    <a href="?onglet=mouvements" class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></a>
+                    {% endif %}
+                </form>
+                <a href="{% url 'articles:mouvements_csv' article.pk %}?type_mouvement={{ type_mouvement }}&date_debut={{ date_debut }}&date_fin={{ date_fin }}&limite={{ limite }}"
+                   class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i>CSV
+                </a>
+            </div>
+        </div>
+
+        <div class="table-scroll">
+            <table class="table table-hover table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th class="eip-th">Date</th>
+                        <th class="eip-th">Type</th>
+                        <th class="eip-th">Quantité</th>
+                        <th class="eip-th">Prix achat</th>
+                        <th class="eip-th">Valeur</th>
+                        <th class="eip-th">Stock avant</th>
+                        <th class="eip-th">Stock après</th>
+                        <th class="eip-th">Motif</th>
+                        <th class="eip-th">Saisi par</th>
+                        {% if request.user.is_staff or request.user.role == 'direction' %}
+                        <th class="eip-th"></th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in mouvements %}
+                    <tr>
+                        <td class="eip-td">{{ m.created_at|date:"d/m/Y H:i" }}</td>
+                        <td class="eip-td">
+                            {% if m.type == 'entree' %}
+                            <span class="badge bg-success">Entrée</span>
+                            {% elif m.type == 'sortie' %}
+                            <span class="badge bg-danger">Sortie</span>
+                            {% else %}
+                            <span class="badge bg-info text-dark">Inventaire</span>
+                            {% endif %}
+                        </td>
+                        <td class="eip-td fw-semibold">{{ m.quantite|floatformat:"-2" }} {{ article.unite.abreviation }}</td>
+                        <td class="eip-td">{% if m.prix_achat %}{{ m.prix_achat|floatformat:"-2" }} XPF{% else %}—{% endif %}</td>
+                        <td class="eip-td fw-semibold">{{ m.valeur|floatformat:"-2" }} XPF</td>
+                        <td class="eip-td text-muted">{{ m.stock_avant|floatformat:"-2" }}</td>
+                        <td class="eip-td fw-semibold">{{ m.stock_apres|floatformat:"-2" }}</td>
+                        <td class="eip-td">{{ m.motif|default:"—" }}</td>
+                        <td class="eip-td">{{ m.user.get_full_name|default:m.user.username }}</td>
+                        {% if request.user.is_staff or request.user.role == 'direction' %}
+                        <td class="eip-td text-end">
+                            <a href="{% url 'articles:mouvement_update' m.pk %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="10" class="text-center text-muted py-3 eip-td">Aucun mouvement.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if not request.GET.onglet or request.GET.onglet == 'info' %}
+{% if mouvements_graphe %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const labels = {{ graphe_labels|safe }};
+    const data = {{ graphe_data|safe }};
+    const seuil = {{ article.seuil_minimum }};
+
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+    const textColor = isDark ? '#adb5bd' : '#6c757d';
+
+    const ctx = document.getElementById('stockChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Stock',
+                    data: data,
+                    borderColor: '#1a4b8c',
+                    backgroundColor: 'rgba(26,75,140,0.08)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    fill: true,
+                    tension: 0.3,
+                },
+                {
+                    label: 'Seuil minimum',
+                    data: Array(labels.length).fill(seuil),
+                    borderColor: '#dc3545',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: { font: { size: 11 }, color: textColor }
+                },
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: { font: { size: 11 }, color: textColor },
+                    grid: { color: gridColor }
+                },
+                x: {
+                    ticks: { font: { size: 11 }, color: textColor },
+                    grid: { color: gridColor }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endif %}
+{% endblock %}

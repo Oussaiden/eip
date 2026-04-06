@@ -22,20 +22,17 @@ class TauxHoraire(models.Model):
         ordering = ['-date_debut']
 
     def __str__(self):
-        return f"{self.libelle} — {self.taux} XPF/h (depuis {self.date_debut})"
+        return f"{self.libelle} — {self.taux} XPF/h"
 
 
 class Machine(models.Model):
-    TYPES = [
-        ('offset', 'Offset'),
-        ('numerique', 'Numérique'),
-        ('finition', 'Finition'),
-        ('autre', 'Autre'),
-    ]
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nom = models.CharField(max_length=100)
-    type = models.CharField(max_length=20, choices=TYPES)
+    type = models.ForeignKey(
+        'parametres.TypeMachine',
+        on_delete=models.PROTECT,
+        related_name='machines'
+    )
     taux_horaire = models.ForeignKey(
         TauxHoraire,
         on_delete=models.PROTECT,
@@ -51,10 +48,10 @@ class Machine(models.Model):
     class Meta:
         verbose_name = 'Machine'
         verbose_name_plural = 'Machines'
-        ordering = ['type', 'nom']
+        ordering = ['type__libelle', 'nom']
 
     def __str__(self):
-        return f"{self.nom} ({self.get_type_display()})"
+        return f"{self.nom} ({self.type.libelle})"
 
 
 class PlanningCreneau(models.Model):

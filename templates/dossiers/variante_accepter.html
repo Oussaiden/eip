@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Accepter variante — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dossiers:list' %}">Devis</a></li>
+<li class="breadcrumb-item"><a href="{% url 'dossiers:detail' devis.pk %}">{{ devis.numero }}</a></li>
+<li class="breadcrumb-item active">Accepter variante</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-check-circle me-2 text-success"></i>Accepter la variante</h4>
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width:600px;">
+    <div class="card-body">
+        <div class="alert alert-warning" style="font-size:13px;">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Attention</strong> — Cette action va :
+            <ul class="mb-0 mt-2">
+                <li>Accepter la variante <strong>{{ variante.libelle }}</strong></li>
+                <li>Refuser toutes les autres variantes du devis</li>
+                <li>Passer le devis en statut <strong>Accepté</strong></li>
+                <li>Créer automatiquement un <strong>Dossier FAB</strong></li>
+            </ul>
+        </div>
+
+        <table class="table table-sm table-borderless mb-4" style="font-size:13px;">
+            <tr>
+                <td class="text-muted" style="width:40%">Devis</td>
+                <td class="fw-semibold">{{ devis.numero }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Client</td>
+                <td>{{ devis.client.raison_sociale }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Variante acceptée</td>
+                <td class="fw-semibold text-success">{{ variante.libelle }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Total TTC</td>
+                <td class="fw-semibold">{{ variante.ttc|floatformat:"-2" }} XPF</td>
+            </tr>
+        </table>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle me-1"></i>Confirmer et créer le dossier FAB
+                </button>
+                <a href="{% url 'dossiers:detail' devis.pk %}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

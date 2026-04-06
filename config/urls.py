@@ -15,4 +15,5 @@ urlpatterns = [
     path('achats/', include('apps.achats.urls')),
     path('notifications/', include('apps.notifications.urls')),
     path('parametres/', include('apps.parametres.urls')),
+    path('atelier/', include('apps.atelier.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

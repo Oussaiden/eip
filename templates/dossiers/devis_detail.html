@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% block title %}{{ devis.numero }} — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dossiers:list' %}">Devis</a></li>
+<li class="breadcrumb-item active">{{ devis.numero }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-file-text me-2"></i>{{ devis.numero }}</h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'dossiers:update' devis.pk %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-pencil me-1"></i>Modifier
+        </a>
+        <a href="{% url 'dossiers:variante_create' devis.pk %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Nouvelle variante
+        </a>
+    </div>
+</div>
+
+<!-- Infos devis -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent fw-semibold border-0 pt-3">
+                <span style="font-size:13px;"><i class="bi bi-info-circle me-2 text-primary"></i>Informations</span>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
+                    <tr>
+                        <td class="text-muted" style="width:40%">Numéro</td>
+                        <td class="fw-semibold">{{ devis.numero }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Client</td>
+                        <td>{{ devis.client.raison_sociale }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Date</td>
+                        <td>{{ devis.date|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Validité</td>
+                        <td>{{ devis.date_validite|date:"d/m/Y"|default:"—" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Statut</td>
+                        <td>
+                            {% if devis.statut == 'brouillon' %}
+                            <span class="badge bg-secondary">Brouillon</span>
+                            {% elif devis.statut == 'envoye' %}
+                            <span class="badge bg-primary">Envoyé</span>
+                            {% elif devis.statut == 'accepte' %}
+                            <span class="badge bg-success">Accepté</span>
+                            {% elif devis.statut == 'refuse' %}
+                            <span class="badge bg-danger">Refusé</span>
+                            {% elif devis.statut == 'annule' %}
+                            <span class="badge bg-secondary">Annulé</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if devis.remise_globale %}
+                    <tr>
+                        <td class="text-muted">Remise globale</td>
+                        <td>{{ devis.remise_globale|floatformat:"-2" }} %</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent fw-semibold border-0 pt-3">
+                <span style="font-size:13px;"><i class="bi bi-file-text me-2 text-primary"></i>Description technique</span>
+            </div>
+            <div class="card-body">
+                {% if devis.description %}
+                <p style="font-size:13px;white-space:pre-line;">{{ devis.description }}</p>
+                {% else %}
+                <p class="text-muted" style="font-size:13px;">Aucune description.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent fw-semibold border-0 pt-3">
+                <span style="font-size:13px;"><i class="bi bi-cash-stack me-2 text-primary"></i>Totaux</span>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
+                    <tr>
+                        <td class="text-muted">Total HT</td>
+                        <td class="fw-semibold text-end">{{ devis.ht|floatformat:"-2" }} XPF</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">TGC</td>
+                        <td class="text-end">{{ devis.tgc|floatformat:"-2" }} XPF</td>
+                    </tr>
+                    <tr style="border-top:2px solid var(--bs-border-color);">
+                        <td class="fw-bold">Total TTC</td>
+                        <td class="fw-bold text-end fs-6">{{ devis.ttc|floatformat:"-2" }} XPF</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Variantes -->
+{% for variante in variantes %}
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+            <span class="fw-bold" style="font-size:15px;">{{ variante.libelle }}</span>
+            {% if variante.statut == 'brouillon' %}
+            <span class="badge bg-secondary">Brouillon</span>
+            {% elif variante.statut == 'envoye' %}
+            <span class="badge bg-primary">Envoyé</span>
+            {% elif variante.statut == 'accepte' %}
+            <span class="badge bg-success">Accepté</span>
+            {% elif variante.statut == 'refuse' %}
+            <span class="badge bg-danger">Refusé</span>
+            {% endif %}
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'dossiers:ligne_create' variante.pk %}" class="btn btn-sm btn-outline-primary" title="Ajouter une ligne">
+                <i class="bi bi-plus-lg"></i>
+            </a>
+            <a href="{% url 'dossiers:variante_update' variante.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                <i class="bi bi-pencil"></i>
+            </a>
+            {% if variante.statut == 'brouillon' and devis.statut != 'accepte' %}
+            <form method="post" action="{% url 'dossiers:variante_accepter' variante.pk %}" onsubmit="return confirm('Accepter cette variante et créer le dossier FAB ?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-success" title="Accepter — créer le dossier FAB">
+                    <i class="bi bi-check-circle me-1"></i>Accepter
+                </button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'dossiers:variante_delete' variante.pk %}" onsubmit="return confirm('Supprimer cette variante ?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0" style="font-size:13px;">
+            <thead>
+                <tr>
+                    <th class="eip-th">Désignation</th>
+                    <th class="eip-th text-end">Qté</th>
+                    <th class="eip-th text-end">PU HT</th>
+                    <th class="eip-th text-end">Remise</th>
+                    <th class="eip-th text-end">HT</th>
+                    <th class="eip-th text-end">TGC</th>
+                    <th class="eip-th text-end">TTC</th>
+                    {% if peut_voir_gain %}
+                    <th class="eip-th text-end" style="color:#198754;">PRU</th>
+                    <th class="eip-th text-end" style="color:#198754;">Gain</th>
+                    {% endif %}
+                    <th class="eip-th"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ligne in variante.lignes.all %}
+                <tr {% if ligne.type == 'sous_total' %}style="font-weight:600;border-top:2px solid var(--bs-border-color);"{% endif %}
+                    {% if ligne.type == 'texte' %}class="text-muted"{% endif %}>
+                    <td class="eip-td">
+                        {% if ligne.type == 'sous_total' %}
+                        <span class="text-muted small">SOUS-TOTAL</span>
+                        {% elif ligne.type == 'texte' %}
+                        <em>{{ ligne.designation }}</em>
+                        {% else %}
+                        {{ ligne.designation }}
+                        {% endif %}
+                    </td>
+                    <td class="eip-td text-end">
+                        {% if ligne.type not in 'sous_total,texte' %}{{ ligne.qte|floatformat:"-2" }}{% endif %}
+                    </td>
+                    <td class="eip-td text-end">
+                        {% if ligne.type not in 'sous_total,texte' %}{{ ligne.pu|floatformat:"-2" }}{% endif %}
+                    </td>
+                    <td class="eip-td text-end">
+                        {% if ligne.remise %}{{ ligne.remise|floatformat:"-2" }} %{% else %}—{% endif %}
+                    </td>
+                    <td class="eip-td text-end fw-semibold">{{ ligne.ht|floatformat:"-2" }}</td>
+                    <td class="eip-td text-end">{{ ligne.tgc|floatformat:"-2" }}</td>
+                    <td class="eip-td text-end fw-semibold">{{ ligne.ttc|floatformat:"-2" }}</td>
+                    {% if peut_voir_gain %}
+                    <td class="eip-td text-end" style="color:#198754;">
+                        {% if ligne.type not in 'sous_total,texte' %}{{ ligne.pru|floatformat:"-2" }}{% endif %}
+                    </td>
+                    <td class="eip-td text-end" style="{% if ligne.gain < 0 %}color:#dc3545;{% else %}color:#198754;{% endif %}">
+                        {{ ligne.gain|floatformat:"-2" }}
+                    </td>
+                    {% endif %}
+                    <td class="eip-td text-end">
+                        {% if ligne.type != 'texte' %}
+                        <a href="{% url 'dossiers:ligne_update' ligne.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% endif %}
+                        <form method="post" action="{% url 'dossiers:ligne_delete' ligne.pk %}" class="d-inline" onsubmit="return confirm('Supprimer cette ligne ?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{% if peut_voir_gain %}10{% else %}8{% endif %}" class="text-center text-muted py-3 eip-td">
+                        Aucune ligne — <a href="{% url 'dossiers:ligne_create' variante.pk %}">Ajouter une ligne</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="border-top:2px solid var(--bs-border-color);">
+                    <td colspan="4" class="eip-td fw-bold text-end">Total variante</td>
+                    <td class="eip-td text-end fw-bold">{{ variante.ht|floatformat:"-2" }}</td>
+                    <td class="eip-td text-end">{{ variante.tgc|floatformat:"-2" }}</td>
+                    <td class="eip-td text-end fw-bold">{{ variante.ttc|floatformat:"-2" }} XPF</td>
+                    {% if peut_voir_gain %}
+                    <td class="eip-td"></td>
+                    <td class="eip-td text-end fw-bold" style="{% if variante.gain < 0 %}color:#dc3545;{% else %}color:#198754;{% endif %}">
+                        {{ variante.gain|floatformat:"-2" }} XPF
+                    </td>
+                    {% endif %}
+                    <td class="eip-td"></td>
+                </tr>
+                {% if variante.remise_globale %}
+                <tr>
+                    <td colspan="4" class="eip-td text-end text-muted">Remise globale {{ variante.remise_globale|floatformat:"-2" }} %</td>
+                    <td colspan="{% if peut_voir_gain %}6{% else %}4{% endif %}" class="eip-td text-end text-danger">
+                        - {{ variante.ht|floatformat:"-2" }} XPF
+                    </td>
+                </tr>
+                {% endif %}
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% empty %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center text-muted py-4" style="font-size:13px;">
+        <i class="bi bi-file-text" style="font-size:32px;opacity:0.3;display:block;margin-bottom:12px;"></i>
+        Aucune variante — <a href="{% url 'dossiers:variante_create' devis.pk %}">Créer une variante</a>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

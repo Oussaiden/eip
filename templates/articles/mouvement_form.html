@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'articles:list' %}">Articles & Stock</a></li>
+<li class="breadcrumb-item"><a href="{% url 'articles:detail' article.pk %}">{{ article.designation }}</a></li>
+<li class="breadcrumb-item active">{% if mouvement %}Modifier mouvement{% else %}Mouvement de stock{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-arrow-left-right me-2"></i>{{ titre }}</h4>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;{% if article.stock_bas %}background:#fee2e2;{% else %}background:#e8f5e9;{% endif %}display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-box" style="font-size:16px;{% if article.stock_bas %}color:#dc3545;{% else %}color:#198754;{% endif %}"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Stock actuel</div>
+                    <div class="fw-bold {% if article.stock_bas %}text-danger{% endif %}">
+                        {{ article.stock_actuel|floatformat:"-2" }} {{ article.unite.abreviation }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-cash-stack" style="font-size:16px;color:#1a4b8c;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Valeur stock</div>
+                    <div class="fw-bold">{{ article.valeur_stock|floatformat:"-2" }} XPF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#fff3e0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-tag" style="font-size:16px;color:#fd7e14;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">PRU moyen</div>
+                    <div class="fw-bold">{{ article.pru_moyen|floatformat:"-2" }} XPF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width:500px;">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Type de mouvement <span class="text-danger">*</span></label>
+                {{ form.type }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Quantité <span class="text-danger">*</span></label>
+                {{ form.quantite }}
+            </div>
+
+            <div class="mb-3" id="bloc_prix_achat">
+                <label class="form-label fw-semibold">Prix d'achat unitaire</label>
+                <input type="number"
+                       name="prix_achat"
+                       id="id_prix_achat"
+                       class="form-control"
+                       step="0.01"
+                       value="{{ mouvement.prix_achat|default:'' }}">
+                <div class="form-text">Prix réel d'achat pour les entrées.</div>
+            </div>
+
+            <div class="mb-3" id="bloc_pru_sortie" style="display:none;">
+                <label class="form-label fw-semibold">Prix de sortie</label>
+                <div class="form-control bg-body-secondary" style="color:var(--bs-body-color);">
+                    {{ article.pru_moyen|floatformat:"-2" }} XPF <span class="text-muted small">(PRU moyen appliqué automatiquement)</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Motif</label>
+                {{ form.motif }}
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>Enregistrer
+                </button>
+                <a href="{% url 'articles:detail' article.pk %}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const typeSelect = document.getElementById('id_type');
+    const blocPrixAchat = document.getElementById('bloc_prix_achat');
+    const blocPruSortie = document.getElementById('bloc_pru_sortie');
+    const prixInput = document.getElementById('id_prix_achat');
+
+    function majAffichage() {
+        if (typeSelect.value === 'sortie') {
+            blocPrixAchat.style.display = 'none';
+            blocPruSortie.style.display = 'block';
+            prixInput.value = '';
+        } else if (typeSelect.value === 'inventaire') {
+            blocPrixAchat.style.display = 'none';
+            blocPruSortie.style.display = 'none';
+            prixInput.value = '';
+        } else {
+            blocPrixAchat.style.display = 'block';
+            blocPruSortie.style.display = 'none';
+        }
+    }
+
+    typeSelect.addEventListener('change', majAffichage);
+    majAffichage();
+</script>
+{% endblock %}

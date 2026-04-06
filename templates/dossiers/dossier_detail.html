@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% block title %}{{ dossier.numero }} — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dossiers:dossier_list' %}">Dossiers FAB</a></li>
+<li class="breadcrumb-item active">{{ dossier.numero }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-folder2-open me-2"></i>{{ dossier.numero }}</h4>
+    <div class="d-flex gap-2">
+        {% if dossier.variante %}
+        <a href="{% url 'dossiers:detail' dossier.variante.devis.pk %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-file-text me-1"></i>Voir le devis
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Bandeau infos -->
+<div class="row g-3 mb-3">
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-person" style="font-size:16px;color:#1a4b8c;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Client</div>
+                    <div class="fw-bold" style="font-size:13px;">{{ dossier.client.raison_sociale }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#fff3e0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-calendar" style="font-size:16px;color:#fd7e14;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Livraison prévue</div>
+                    <div class="fw-bold" style="font-size:13px;">{{ dossier.date_livraison|date:"d/m/Y"|default:"—" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;
+                    {% if dossier.priorite == 'tres_urgent' %}background:#fee2e2;{% elif dossier.priorite == 'urgent' %}background:#fff3e0;{% else %}background:#e8f5e9;{% endif %}
+                    display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-flag" style="font-size:16px;
+                        {% if dossier.priorite == 'tres_urgent' %}color:#dc3545;{% elif dossier.priorite == 'urgent' %}color:#fd7e14;{% else %}color:#198754;{% endif %}"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Priorité</div>
+                    <div class="fw-bold" style="font-size:13px;">{{ dossier.get_priorite_display }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-circle-fill" style="font-size:12px;color:#1a4b8c;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Statut</div>
+                    <div class="fw-bold" style="font-size:13px;">{{ dossier.get_statut_display }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="eip-tabs">
+        <a href="?onglet=fab" class="eip-tab {% if not request.GET.onglet or request.GET.onglet == 'fab' %}active{% endif %}">
+            <i class="bi bi-gear"></i> Fabrication
+        </a>
+        {% if peut_voir_gain %}
+        <a href="?onglet=rentabilite" class="eip-tab {% if request.GET.onglet == 'rentabilite' %}active{% endif %}">
+            <i class="bi bi-graph-up"></i> Rentabilité
+        </a>
+        {% endif %}
+        <a href="?onglet=pointages" class="eip-tab {% if request.GET.onglet == 'pointages' %}active{% endif %}">
+            <i class="bi bi-clock-history"></i> Pointages
+            <span class="tab-badge">{{ pointages.count }}</span>
+        </a>
+    </div>
+
+    <div class="card-body p-0">
+
+        {% if not request.GET.onglet or request.GET.onglet == 'fab' %}
+        <div class="p-3">
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="card border-0 bg-body-secondary h-100">
+                        <div class="card-header bg-transparent fw-semibold border-0 pt-3">
+                            <span style="font-size:13px;"><i class="bi bi-list-ul me-2 text-primary"></i>Lignes de fabrication</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm mb-0" style="font-size:13px;">
+                                <thead>
+                                    <tr>
+                                        <th class="eip-th">Type</th>
+                                        <th class="eip-th">Désignation</th>
+                                        <th class="eip-th text-end">Prévu</th>
+                                        <th class="eip-th text-end">Consommé</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ligne in dossier.lignes.all %}
+                                    <tr>
+                                        <td class="eip-td"><span class="badge bg-secondary">{{ ligne.type.libelle }}</span></td>
+                                        <td class="eip-td">{{ ligne.designation }}</td>
+                                        <td class="eip-td text-end">{{ ligne.qte_prevue|floatformat:"-2" }}</td>
+                                        <td class="eip-td text-end {% if ligne.qte_consommee and ligne.qte_consommee > ligne.qte_prevue %}text-danger{% endif %}">
+                                            {{ ligne.qte_consommee|floatformat:"-2"|default:"—" }}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="4" class="text-center text-muted py-3 eip-td">Aucune ligne de fabrication.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card border-0 bg-body-secondary h-100">
+                        <div class="card-header bg-transparent fw-semibold border-0 pt-3">
+                            <span style="font-size:13px;"><i class="bi bi-file-text me-2 text-primary"></i>Notes de fabrication</span>
+                        </div>
+                        <div class="card-body">
+                            {% if dossier.notes_fab %}
+                            <p style="font-size:13px;white-space:pre-line;">{{ dossier.notes_fab }}</p>
+                            {% else %}
+                            <p class="text-muted" style="font-size:13px;">Aucune note de fabrication.</p>
+                            {% endif %}
+                            {% if dossier.variante and dossier.variante.devis.description %}
+                            <hr>
+                            <div class="text-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:1px;">Description technique</div>
+                            <p style="font-size:13px;white-space:pre-line;margin-top:8px;">{{ dossier.variante.devis.description }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if peut_voir_gain and request.GET.onglet == 'rentabilite' %}
+        <div class="p-3">
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="card border-0 bg-body-secondary">
+                        <div class="card-header bg-transparent fw-semibold border-0 pt-3">
+                            <span style="font-size:13px;"><i class="bi bi-graph-up me-2 text-primary"></i>Gain prévu</span>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
+                                <tr>
+                                    <td class="text-muted">Prix de vente HT</td>
+                                    <td class="text-end fw-semibold">{% if dossier.variante %}{{ dossier.variante.ht|floatformat:"-2" }}{% else %}—{% endif %} XPF</td>
+                                </tr>
+                                {% for type_lib, pr in dossier.pr_prevu_par_type.items %}
+                                <tr>
+                                    <td class="text-muted">— {{ type_lib }}</td>
+                                    <td class="text-end text-danger">- {{ pr|floatformat:"-2" }} XPF</td>
+                                </tr>
+                                {% endfor %}
+                                <tr style="border-top:2px solid var(--bs-border-color);">
+                                    <td class="fw-bold">Gain prévu</td>
+                                    <td class="text-end fw-bold {% if dossier.gain_prevu < 0 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ dossier.gain_prevu|floatformat:"-2" }} XPF
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card border-0 bg-body-secondary">
+                        <div class="card-header bg-transparent fw-semibold border-0 pt-3">
+                            <span style="font-size:13px;"><i class="bi bi-graph-up-arrow me-2 text-success"></i>Gain réel</span>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
+                                <tr>
+                                    <td class="text-muted">Prix de vente HT</td>
+                                    <td class="text-end fw-semibold">{% if dossier.variante %}{{ dossier.variante.ht|floatformat:"-2" }}{% else %}—{% endif %} XPF</td>
+                                </tr>
+                                {% for type_lib, pr in dossier.pr_reel_par_type.items %}
+                                <tr>
+                                    <td class="text-muted">— {{ type_lib }}</td>
+                                    <td class="text-end text-danger">- {{ pr|floatformat:"-2" }} XPF</td>
+                                </tr>
+                                {% endfor %}
+                                <tr style="border-top:2px solid var(--bs-border-color);">
+                                    <td class="fw-bold">Gain réel</td>
+                                    <td class="text-end fw-bold {% if dossier.gain_reel < 0 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ dossier.gain_reel|floatformat:"-2" }} XPF
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if request.GET.onglet == 'pointages' %}
+        <div class="table-scroll">
+            <table class="table table-hover table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th class="eip-th">Date</th>
+                        <th class="eip-th">Opérateur</th>
+                        <th class="eip-th">Tâche</th>
+                        <th class="eip-th text-end">Prévu</th>
+                        <th class="eip-th text-end">Réel</th>
+                        <th class="eip-th">Durée</th>
+                        <th class="eip-th">Statut</th>
+                        <th class="eip-th">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pointages %}
+                    <tr>
+                        <td class="eip-td">{{ p.created_at|date:"d/m/Y H:i" }}</td>
+                        <td class="eip-td">{{ p.operateur.get_full_name|default:p.operateur.username }}</td>
+                        <td class="eip-td">{{ p.type_tache.libelle }}</td>
+                        <td class="eip-td text-end">{{ p.qte_prevue|floatformat:"-2" }}</td>
+                        <td class="eip-td text-end fw-semibold">{{ p.qte_reelle|floatformat:"-2"|default:"—" }}</td>
+                        <td class="eip-td">{% if p.duree_minutes %}{{ p.duree_minutes }} min{% else %}—{% endif %}</td>
+                        <td class="eip-td">
+                            {% if p.statut == 'en_cours' %}
+                            <span class="badge bg-warning text-dark">En cours</span>
+                            {% else %}
+                            <span class="badge bg-success">Terminé</span>
+                            {% endif %}
+                        </td>
+                        <td class="eip-td">{{ p.notes|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-3 eip-td">Aucun pointage.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

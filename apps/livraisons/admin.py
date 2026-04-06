@@ -9,8 +9,8 @@ class LigneLivraisonInline(admin.TabularInline):
 
 @admin.register(BonLivraison)
 class BonLivraisonAdmin(admin.ModelAdmin):
-    list_display = ['dossier', 'type_transport', 'transporteur', 'statut', 'date_expedition', 'date_livraison_reelle']
+    list_display = ['numero', 'client', 'dossier', 'date', 'type_transport', 'statut']
     list_filter = ['statut', 'type_transport']
-    search_fields = ['dossier__numero', 'transporteur', 'numero_suivi']
-    ordering = ['-created_at']
+    search_fields = ['numero', 'client__raison_sociale']
+    ordering = ['-date']
     inlines = [LigneLivraisonInline]
