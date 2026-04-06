@@ -60,52 +60,50 @@ def client_detail(request, pk):
     from apps.livraisons.models import BonLivraison
 
     # ── Devis ────────────────────────────────────────────────
-    devis = client.dossiers.filter(statut__in=['brouillon', 'devis_envoye'])
+    devis = client.devis.all()
     if statut and onglet == 'devis':
         devis = devis.filter(statut=statut)
     if onglet == 'devis':
-        devis = get_periode_filter(devis, periode, date_debut, date_fin)
-    devis = devis.order_by('-created_at')
+        devis = get_periode_filter(devis, periode, date_debut, date_fin, date_field='date')
+    devis = devis.order_by('-date')
 
     # ── Dossiers FAB ─────────────────────────────────────────
-    dossiers_fab = client.dossiers.filter(
-        statut__in=['accepte', 'en_fabrication', 'expedie', 'facture', 'annule', 'archive']
-    )
+    dossiers_fab = client.dossiers.all()
     if statut and onglet == 'dossiers':
         dossiers_fab = dossiers_fab.filter(statut=statut)
     if onglet == 'dossiers':
-        dossiers_fab = get_periode_filter(dossiers_fab, periode, date_debut, date_fin)
-    dossiers_fab = dossiers_fab.order_by('-created_at')
+        dossiers_fab = get_periode_filter(dossiers_fab, periode, date_debut, date_fin, date_field='date')
+    dossiers_fab = dossiers_fab.order_by('-date')
 
     # ── Factures ─────────────────────────────────────────────
-    factures = Facture.objects.filter(dossier__client=client)
+    factures = Facture.objects.filter(client=client)
     if statut and onglet == 'factures':
         factures = factures.filter(statut=statut)
     if onglet == 'factures':
-        factures = get_periode_filter(factures, periode, date_debut, date_fin, date_field='date_emission')
-    factures = factures.order_by('-date_emission')
+        factures = get_periode_filter(factures, periode, date_debut, date_fin, date_field='date')
+    factures = factures.order_by('-date')
 
     # ── Livraisons ───────────────────────────────────────────
-    livraisons = BonLivraison.objects.filter(dossier__client=client)
+    livraisons = BonLivraison.objects.filter(client=client)
     if statut and onglet == 'livraisons':
         livraisons = livraisons.filter(statut=statut)
     if onglet == 'livraisons':
-        livraisons = get_periode_filter(livraisons, periode, date_debut, date_fin, date_field='date_expedition')
-    livraisons = livraisons.order_by('-date_expedition')
+        livraisons = get_periode_filter(livraisons, periode, date_debut, date_fin, date_field='date')
+    livraisons = livraisons.order_by('-date')
 
     # ── Résumé financier ─────────────────────────────────────
     ca_total = Facture.objects.filter(
-        dossier__client=client,
+        client=client,
         statut__in=['emise', 'payee']
-    ).aggregate(total=Sum('montant_ttc'))['total'] or 0
+    ).aggregate(total=Sum('ttc'))['total'] or 0
 
     solde_du = Facture.objects.filter(
-        dossier__client=client,
+        client=client,
         statut='emise'
-    ).aggregate(total=Sum('montant_ttc'))['total'] or 0
+    ).aggregate(total=Sum('solde'))['total'] or 0
 
     dossiers_en_cours = client.dossiers.filter(
-        statut__in=['accepte', 'en_fabrication']
+        statut__in=['en_fabrication']
     ).count()
 
     return render(request, 'clients/detail.html', {
@@ -118,10 +116,10 @@ def client_detail(request, pk):
         'ca_total': ca_total,
         'solde_du': solde_du,
         'dossiers_en_cours': dossiers_en_cours,
-        'nb_devis': client.dossiers.filter(statut__in=['brouillon', 'devis_envoye']).count(),
-        'nb_dossiers': client.dossiers.filter(statut__in=['accepte', 'en_fabrication', 'expedie', 'facture', 'annule', 'archive']).count(),
-        'nb_factures': Facture.objects.filter(dossier__client=client).count(),
-        'nb_livraisons': BonLivraison.objects.filter(dossier__client=client).count(),
+        'nb_devis': client.devis.count(),
+        'nb_dossiers': client.dossiers.count(),
+        'nb_factures': Facture.objects.filter(client=client).count(),
+        'nb_livraisons': BonLivraison.objects.filter(client=client).count(),
     })
 
 

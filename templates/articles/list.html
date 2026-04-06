@@ -1,13 +1,92 @@
 {% extends 'base.html' %}
-{% block title %}Articles — EIP{% endblock %}
+{% block title %}Articles & Stock — EIP{% endblock %}
+
 {% block breadcrumb %}
-<li class="breadcrumb-item active">Clients</li>
+<li class="breadcrumb-item active">Articles & Stock</li>
 {% endblock %}
+
 {% block content %}
-<h4 class="fw-bold mb-4"><i class="bi bi-people me-2"></i>Articles</h4>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>Articles & Stock</h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'articles:fournisseur_list' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-truck me-1"></i>Fournisseurs
+        </a>
+        <a href="{% url 'articles:create' %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Nouvel article
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="Référence ou désignation..." style="min-width:200px;">
+            <select name="categorie" class="form-select form-select-sm" style="width:auto;">
+                <option value="">Toutes catégories</option>
+                {% for cat in categories %}
+                <option value="{{ cat.pk }}" {% if categorie == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.libelle }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-check mb-0 ms-1">
+                <input type="checkbox" class="form-check-input" name="stock_bas" value="1" id="stock_bas" {% if stock_bas == '1' %}checked{% endif %}>
+                <label class="form-check-label small" for="stock_bas">Stock bas uniquement</label>
+            </div>
+            <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-search"></i></button>
+            {% if search or categorie or stock_bas %}
+            <a href="{% url 'articles:list' %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
 <div class="card border-0 shadow-sm">
-    <div class="card-body">
-        <p class="text-muted">Module en cours de développement.</p>
+    <div class="table-scroll">
+        <table class="table table-hover table-sm mb-0">
+            <thead>
+                <tr>
+                    <th class="eip-th">Référence</th>
+                    <th class="eip-th">Désignation</th>
+                    <th class="eip-th">Catégorie</th>
+                    <th class="eip-th">Stock actuel</th>
+                    <th class="eip-th">Seuil mini</th>
+                    <th class="eip-th">État</th>
+                    <th class="eip-th"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for article in articles %}
+                <tr style="cursor:pointer;" onclick="window.location='{% url 'articles:detail' article.pk %}'">
+                    <td class="eip-td fw-semibold">{{ article.reference }}</td>
+                    <td class="eip-td">{{ article.designation }}</td>
+                    <td class="eip-td">{{ article.categorie.libelle }}</td>
+                    <td class="eip-td fw-semibold {% if article.stock_bas %}text-danger{% endif %}">
+                        {{ article.stock_actuel }} {{ article.unite.abreviation }}
+                    </td>
+                    <td class="eip-td text-muted">{{ article.seuil_minimum }} {{ article.unite.abreviation }}</td>
+                    <td class="eip-td">
+                        {% if article.stock_bas %}
+                        <span class="badge bg-danger">Stock bas</span>
+                        {% else %}
+                        <span class="badge bg-success">OK</span>
+                        {% endif %}
+                    </td>
+                    <td class="eip-td text-end" onclick="event.stopPropagation()">
+                        <a href="{% url 'articles:mouvement' article.pk %}" class="btn btn-sm btn-outline-primary" title="Mouvement de stock">
+                            <i class="bi bi-arrow-left-right"></i>
+                        </a>
+                        <a href="{% url 'articles:update' article.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-3 eip-td">Aucun article trouvé.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dossiers:list' %}">Devis</a></li>
+<li class="breadcrumb-item"><a href="{% url 'dossiers:detail' devis.pk %}">{{ devis.numero }}</a></li>
+<li class="breadcrumb-item active">{{ titre }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+        text-align: right;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-list-ul me-2"></i>{{ titre }}</h4>
+    <span class="ms-3 text-muted" style="font-size:13px;">Variante : {{ variante.libelle }}</span>
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width:700px;">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="alert alert-danger" style="font-size:13px;">
+                {% for field, errors in form.errors.items %}
+                <div><strong>{{ field }}</strong> : {{ errors }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Type de ligne <span class="text-danger">*</span></label>
+                {{ form.type }}
+            </div>
+
+            <div id="bloc_article" class="mb-3" style="display:none;">
+                <label class="form-label fw-semibold">Article catalogue</label>
+                {{ form.article }}
+                <div class="form-text">La désignation, le prix unitaire, le PRU et la TGC seront remplis automatiquement.</div>
+            </div>
+
+            <div id="bloc_designation" class="mb-3">
+                <label class="form-label fw-semibold">Désignation</label>
+                {{ form.designation }}
+            </div>
+
+            <div id="bloc_chiffres">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Quantité</label>
+                        {{ form.qte }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Prix unitaire HT</label>
+                        {{ form.pu }}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Remise (%)</label>
+                        {{ form.remise }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">TGC</label>
+                        {{ form.tgc_obj }}
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">PRU <small class="text-muted fw-normal">(non imprimé)</small></label>
+                        {{ form.pru }}
+                    </div>
+                </div>
+
+                <div class="card border-0 bg-body-secondary p-3 mb-3" style="font-size:13px;">
+                    <div class="row g-2">
+                        <div class="col-3">
+                            <div class="text-muted mb-1">HT</div>
+                            <div class="fw-bold" id="calc_ht">0 XPF</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-muted mb-1">TGC</div>
+                            <div class="fw-bold" id="calc_tgc">0 XPF</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-muted mb-1">TTC</div>
+                            <div class="fw-bold" id="calc_ttc">0 XPF</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-muted mb-1">Gain</div>
+                            <div class="fw-bold" id="calc_gain">0 XPF</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>Enregistrer
+                </button>
+                <a href="{% url 'dossiers:detail' devis.pk %}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const typeSelect = document.getElementById('id_type');
+    const articleSelect = document.getElementById('id_article');
+    const tgcSelect = document.getElementById('id_tgc_obj');
+    const blocArticle = document.getElementById('bloc_article');
+    const blocDesignation = document.getElementById('bloc_designation');
+    const blocChiffres = document.getElementById('bloc_chiffres');
+    const ARTICLE_BASE_URL = '/dossiers/api/article/';
+
+    function fmt(val) {
+        return Math.round(val).toLocaleString('fr-FR') + ' XPF';
+    }
+
+    function getTauxTGC() {
+        if (!tgcSelect) return 0;
+        const idx = tgcSelect.selectedIndex;
+        if (idx < 0) return 0;
+        const opt = tgcSelect.options[idx];
+        if (!opt || opt.value === '') return 0;
+        const match = opt.text.match(/(\d+([.,]\d+)?)/);
+        return match ? parseFloat(match[0].replace(',', '.')) : 0;
+    }
+
+    function calculer() {
+        const qte = parseFloat(document.getElementById('id_qte').value.replace(',', '.')) || 0;
+        const pu = parseFloat(document.getElementById('id_pu').value.replace(',', '.')) || 0;
+        const remise = parseFloat(document.getElementById('id_remise').value.replace(',', '.')) || 0;
+        const pru = parseFloat(document.getElementById('id_pru').value.replace(',', '.')) || 0;
+        const taux_tgc = getTauxTGC();
+
+        const base = qte * pu;
+        const ht = base * (1 - remise / 100);
+        const tgc = ht * taux_tgc / 100;
+        const ttc = ht + tgc;
+        const gain = ht - (pru * qte);
+
+        document.getElementById('calc_ht').textContent = fmt(ht);
+        document.getElementById('calc_tgc').textContent = fmt(tgc);
+        document.getElementById('calc_ttc').textContent = fmt(ttc);
+
+        const gainEl = document.getElementById('calc_gain');
+        gainEl.textContent = fmt(gain);
+        gainEl.style.color = gain < 0 ? '#dc3545' : '#198754';
+    }
+
+    function majAffichage() {
+        const type = typeSelect.value;
+        if (type === 'texte') {
+            blocArticle.style.display = 'none';
+            blocChiffres.style.display = 'none';
+            blocDesignation.style.display = 'block';
+        } else if (type === 'sous_total') {
+            blocArticle.style.display = 'none';
+            blocChiffres.style.display = 'none';
+            blocDesignation.style.display = 'none';
+        } else {
+            blocArticle.style.display = type === 'article' ? 'block' : 'none';
+            blocDesignation.style.display = 'block';
+            blocChiffres.style.display = 'block';
+        }
+        calculer();
+    }
+
+    articleSelect.addEventListener('change', function() {
+        const articleId = this.value;
+        if (!articleId) return;
+
+        fetch(ARTICLE_BASE_URL + articleId + '/')
+            .then(r => r.json())
+            .then(data => {
+                const desInput = document.getElementById('id_designation');
+                if (!desInput.value) {
+                    desInput.value = data.designation;
+                }
+                document.getElementById('id_pu').value = data.pu;
+                document.getElementById('id_pru').value = data.pru;
+                for (let opt of tgcSelect.options) {
+                    if (opt.value === data.tgc_id) {
+                        tgcSelect.value = opt.value;
+                        break;
+                    }
+                }
+                calculer();
+            })
+            .catch(err => console.error('Erreur AJAX article:', err));
+    });
+
+    typeSelect.addEventListener('change', majAffichage);
+    tgcSelect.addEventListener('change', calculer);
+
+    ['id_qte', 'id_pu', 'id_remise', 'id_pru'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', calculer);
+            el.addEventListener('change', calculer);
+        }
+    });
+
+    majAffichage();
+    calculer();
+</script>
+{% endblock %}

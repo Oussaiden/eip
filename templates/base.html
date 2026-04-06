@@ -377,7 +377,6 @@
             background: var(--bs-body-bg);
         }
 
-        /* Style entête tableau uniforme */
         .eip-th {
             padding: 8px 14px;
             font-size: 11px;
@@ -394,7 +393,6 @@
             vertical-align: middle;
         }
 
-        /* Listes scrollables (contacts, adresses) */
         .list-scroll {
             max-height: 300px;
             overflow-y: auto;
@@ -484,8 +482,14 @@
                 </li>
                 <li class="nav-item">
                     <a href="{% url 'dossiers:list' %}" data-path="/dossiers/">
+                        <i class="bi bi-file-text"></i>
+                        <span class="nav-label">Devis</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'dossiers:dossier_list' %}" data-path="/dossiers/dossiers/">
                         <i class="bi bi-folder2-open"></i>
-                        <span class="nav-label">Devis & Dossiers</span>
+                        <span class="nav-label">Dossiers FAB</span>
                     </a>
                 </li>
                 <li class="nav-item">

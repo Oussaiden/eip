@@ -9,8 +9,8 @@ class LigneBonCommandeInline(admin.TabularInline):
 
 @admin.register(BonCommande)
 class BonCommandeAdmin(admin.ModelAdmin):
-    list_display = ['numero', 'fournisseur', 'demandeur', 'validateur', 'statut', 'date_demande', 'date_validation']
+    list_display = ['numero', 'fournisseur', 'demandeur', 'validateur', 'statut', 'date', 'date_validation']
     list_filter = ['statut']
     search_fields = ['numero', 'fournisseur__raison_sociale']
-    ordering = ['-created_at']
+    ordering = ['-date']
     inlines = [LigneBonCommandeInline]

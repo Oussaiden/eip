@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'apps.achats',
     'apps.notifications',
     'apps.parametres',
+    'apps.atelier',
 ]
 
 MIDDLEWARE = [

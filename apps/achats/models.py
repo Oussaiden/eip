@@ -5,7 +5,7 @@ from django.db import models
 class BonCommande(models.Model):
     STATUTS = [
         ('brouillon', 'Brouillon'),
-        ('en_attente_validation', 'En attente de validation'),
+        ('en_attente', 'En attente de validation'),
         ('valide', 'Validé'),
         ('envoye', 'Envoyé'),
         ('recu', 'Reçu'),
@@ -31,8 +31,8 @@ class BonCommande(models.Model):
         blank=True,
         related_name='bons_commande_valides'
     )
-    statut = models.CharField(max_length=30, choices=STATUTS, default='brouillon')
-    date_demande = models.DateField(auto_now_add=True)
+    statut = models.CharField(max_length=20, choices=STATUTS, default='brouillon')
+    date = models.DateField()
     date_validation = models.DateField(null=True, blank=True)
     date_livraison_prevue = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True)
@@ -42,7 +42,7 @@ class BonCommande(models.Model):
     class Meta:
         verbose_name = 'Bon de commande'
         verbose_name_plural = 'Bons de commande'
-        ordering = ['-created_at']
+        ordering = ['-date']
 
     def __str__(self):
         return f"{self.numero} — {self.fournisseur.raison_sociale}"
@@ -60,21 +60,22 @@ class LigneBonCommande(models.Model):
         on_delete=models.PROTECT,
         related_name='lignes_commande'
     )
-    quantite = models.DecimalField(max_digits=10, decimal_places=3)
-    prix_unitaire = models.DecimalField(max_digits=10, decimal_places=2)
-    quantite_recue = models.DecimalField(max_digits=10, decimal_places=3, default=0)
+    designation = models.CharField(max_length=255)
+    qte = models.DecimalField(max_digits=10, decimal_places=3)
+    pu = models.DecimalField(max_digits=10, decimal_places=2)
+    qte_recue = models.DecimalField(max_digits=10, decimal_places=3, default=0)
 
     class Meta:
         verbose_name = 'Ligne bon de commande'
         verbose_name_plural = 'Lignes bon de commande'
 
     def __str__(self):
-        return f"{self.article.designation} — {self.quantite} {self.article.unite}"
+        return f"{self.designation} — {self.bon_commande.numero}"
 
     @property
-    def montant(self):
-        return self.quantite * self.prix_unitaire
+    def mt(self):
+        return self.qte * self.pu
 
     @property
-    def quantite_restante(self):
-        return self.quantite - self.quantite_recue
+    def qte_restante(self):
+        return self.qte - self.qte_recue
