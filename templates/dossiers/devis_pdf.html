@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+{% load eip_tags %}
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Devis {{ devis.numero }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 15mm 22mm 15mm;
+    @bottom-center {
+      content: "Page " counter(page) " / " counter(pages);
+      font-size: 9px;
+      color: #888;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "DejaVu Sans", Arial, sans-serif;
+    font-size: 10px;
+    color: #1a1a1a;
+    line-height: 1.45;
+  }
+
+  /* ── En-tête ─────────────────────────────── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #1a56a0;
+  }
+  .societe-nom {
+    font-size: 16px;
+    font-weight: bold;
+    color: #1a56a0;
+    margin-bottom: 4px;
+  }
+  .societe-info { color: #555; font-size: 9px; line-height: 1.6; }
+
+  .doc-title-block { text-align: right; }
+  .doc-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #1a56a0;
+    letter-spacing: 1px;
+  }
+  .doc-numero { font-size: 13px; font-weight: bold; margin-top: 2px; }
+  .doc-date { font-size: 9px; color: #555; margin-top: 4px; }
+
+  /* ── Bloc client / info ───────────────────── */
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 16px;
+  }
+  .bloc-client {
+    flex: 1;
+    background: #f4f7fb;
+    border: 1px solid #d0dcea;
+    border-radius: 4px;
+    padding: 10px 12px;
+  }
+  .bloc-client-titre {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #1a56a0;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  .client-nom { font-size: 11px; font-weight: bold; margin-bottom: 2px; }
+  .client-detail { font-size: 9px; color: #444; line-height: 1.6; }
+
+  .bloc-infos {
+    width: 180px;
+    background: #f4f7fb;
+    border: 1px solid #d0dcea;
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 9px;
+  }
+  .bloc-infos table { width: 100%; border-collapse: collapse; }
+  .bloc-infos td { padding: 2px 0; }
+  .bloc-infos td:first-child { color: #666; white-space: nowrap; padding-right: 8px; }
+  .bloc-infos td:last-child { font-weight: bold; text-align: right; }
+
+  /* ── Description ──────────────────────────── */
+  .description-bloc {
+    background: #fffbef;
+    border-left: 3px solid #e8a800;
+    padding: 7px 10px;
+    font-size: 9px;
+    color: #444;
+    margin-bottom: 14px;
+    white-space: pre-line;
+  }
+
+  /* ── Séparateur variante ──────────────────── */
+  .variante-header {
+    margin-top: 16px;
+    margin-bottom: 6px;
+    padding: 6px 10px;
+    background: #1a56a0;
+    color: #fff;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: bold;
+  }
+  .variante-only { margin-top: 0; }
+
+  /* ── Table lignes ─────────────────────────── */
+  table.lignes {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 4px;
+    font-size: 9.5px;
+  }
+  table.lignes th {
+    background: #e8edf5;
+    color: #1a56a0;
+    padding: 4px 6px;
+    text-align: left;
+    font-size: 8.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #c5d0e0;
+  }
+  table.lignes th.r { text-align: right; }
+  table.lignes td {
+    padding: 4px 6px;
+    border-bottom: 1px solid #eaeaea;
+    vertical-align: top;
+  }
+  table.lignes td.r { text-align: right; white-space: nowrap; }
+  table.lignes tr:last-child td { border-bottom: none; }
+  table.lignes tr td:first-child { font-weight: 500; }
+  table.lignes td.fw-bold { font-weight: bold; }
+
+  /* ── Total variante ───────────────────────── */
+  .total-variante {
+    display: flex;
+    justify-content: flex-end;
+    margin: 6px 0 14px 0;
+  }
+  .total-variante table {
+    border-collapse: collapse;
+    font-size: 9.5px;
+    min-width: 220px;
+  }
+  .total-variante td {
+    padding: 3px 10px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .total-variante td:first-child { color: #555; }
+  .total-variante td:last-child { text-align: right; font-weight: bold; white-space: nowrap; }
+  .total-variante tr.ttc td {
+    background: #1a56a0;
+    color: #fff;
+    font-size: 11px;
+    border: none;
+  }
+
+  /* ── Notes ────────────────────────────────── */
+  .notes-bloc {
+    margin-top: 14px;
+    border: 1px solid #dde3ec;
+    border-radius: 3px;
+    padding: 8px 10px;
+    font-size: 9px;
+    color: #444;
+    white-space: pre-line;
+  }
+  .notes-titre {
+    font-size: 8px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #888;
+    margin-bottom: 4px;
+  }
+
+  /* ── Mention légale ───────────────────────── */
+  .legal {
+    margin-top: 16px;
+    font-size: 8px;
+    color: #999;
+    text-align: center;
+    border-top: 1px solid #eee;
+    padding-top: 8px;
+  }
+
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<!-- ══ EN-TÊTE ══════════════════════════════════════════════ -->
+<div class="header">
+  <div>
+    <div class="societe-nom">{{ societe.nom }}</div>
+    <div class="societe-info">
+      {% if societe.adresse %}{{ societe.adresse }}<br>{% endif %}
+      {% if societe.telephone %}Tél : {{ societe.telephone }}{% if societe.email %} &nbsp;|&nbsp; {% endif %}{% endif %}
+      {% if societe.email %}{{ societe.email }}{% endif %}
+      {% if societe.siret %}<br>SIRET : {{ societe.siret }}{% endif %}
+    </div>
+  </div>
+  <div class="doc-title-block">
+    <div class="doc-title">DEVIS</div>
+    <div class="doc-numero">{{ devis.numero }}</div>
+    <div class="doc-date">
+      Le {{ devis.date|date:"d/m/Y" }}
+      {% if devis.date_validite %}&nbsp;— Valable jusqu'au {{ devis.date_validite|date:"d/m/Y" }}{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ══ CLIENT + INFOS ════════════════════════════════════════ -->
+<div class="meta-row">
+  <div class="bloc-client">
+    <div class="bloc-client-titre">Client</div>
+    <div class="client-nom">{{ devis.client.raison_sociale }}</div>
+    {% if devis.client.siret %}<div class="client-detail">SIRET : {{ devis.client.siret }}</div>{% endif %}
+    {% with contact=devis.client.contacts.filter.is_principal %}{% endwith %}
+    {% for contact in devis.client.contacts.all|slice:":1" %}
+    <div class="client-detail">
+      {{ contact.prenom }} {{ contact.nom }}{% if contact.poste %} — {{ contact.poste }}{% endif %}<br>
+      {% if contact.telephone %}Tél : {{ contact.telephone }}&nbsp; {% endif %}
+      {% if contact.email %}{{ contact.email }}{% endif %}
+    </div>
+    {% endfor %}
+    {% if devis.client.email and not devis.client.contacts.exists %}<div class="client-detail">{{ devis.client.email }}</div>{% endif %}
+    {% if devis.client.telephone and not devis.client.contacts.exists %}<div class="client-detail">Tél : {{ devis.client.telephone }}</div>{% endif %}
+  </div>
+
+  <div class="bloc-infos">
+    <table>
+      <tr><td>Numéro</td><td>{{ devis.numero }}</td></tr>
+      <tr><td>Date</td><td>{{ devis.date|date:"d/m/Y" }}</td></tr>
+      {% if devis.date_validite %}
+      <tr><td>Validité</td><td>{{ devis.date_validite|date:"d/m/Y" }}</td></tr>
+      {% endif %}
+      {% if devis.remise_globale %}
+      <tr><td>Remise</td><td>{{ devis.remise_globale|floatformat:"-2" }} %</td></tr>
+      {% endif %}
+      <tr><td>Statut</td><td>{% if devis.statut == 'brouillon' %}Brouillon{% elif devis.statut == 'envoye' %}Envoyé{% elif devis.statut == 'accepte' %}Accepté{% elif devis.statut == 'refuse' %}Refusé{% elif devis.statut == 'annule' %}Annulé{% endif %}</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ══ DESCRIPTION ═══════════════════════════════════════════ -->
+{% if devis.description %}
+<div class="description-bloc">{{ devis.description }}</div>
+{% endif %}
+
+<!-- ══ VARIANTES ═════════════════════════════════════════════ -->
+{% for item in variantes_data %}
+{% with variante=item.variante %}
+
+{% if variantes_data|length > 1 %}
+{% if not forloop.first %}<div class="page-break"></div>{% endif %}
+<div class="variante-header">Option {{ forloop.counter }} — {{ variante.libelle }}</div>
+{% endif %}
+
+<table class="lignes">
+  <thead>
+    <tr>
+      <th style="width:60%;">Prestation</th>
+      <th class="r" style="width:20%;">Montant HT</th>
+      <th class="r" style="width:20%;">Montant TTC</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for section in item.sections %}
+    <tr>
+      <td>{{ section.label }}</td>
+      <td class="r">{{ section.ht|xpf }}</td>
+      <td class="r fw-bold">{{ section.ttc|xpf }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="3" style="text-align:center;color:#aaa;padding:10px;">Aucune prestation.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<!-- Total variante -->
+<div class="total-variante">
+  <table>
+    <tr><td>Total HT</td><td>{{ variante.ht|xpf }}</td></tr>
+    <tr><td>TGC</td><td>{{ variante.tgc|xpf }}</td></tr>
+    {% if variante.remise_globale %}
+    <tr><td>Remise {{ variante.remise_globale|floatformat:"-2" }} %</td><td style="color:#c0392b;">- {{ variante.ht|xpf }}</td></tr>
+    {% endif %}
+    <tr class="ttc"><td>TOTAL TTC</td><td>{{ variante.ttc|xpf }}</td></tr>
+  </table>
+</div>
+
+{% endwith %}
+{% endfor %}
+
+<!-- ══ NOTES ═════════════════════════════════════════════════ -->
+{% if devis.notes %}
+<div class="notes-bloc">
+  <div class="notes-titre">Notes et conditions</div>
+  {{ devis.notes }}
+</div>
+{% endif %}
+
+<!-- ══ MENTIONS LÉGALES ══════════════════════════════════════ -->
+<div class="legal">
+  Devis valable jusqu'au {{ devis.date_validite|date:"d/m/Y"|default:"—" }} — Ce document ne constitue pas une commande.
+  {% if societe.nom %} | {{ societe.nom }}{% endif %}
+</div>
+
+</body>
+</html>

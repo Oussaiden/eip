@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load eip_tags %}
 {% block title %}{{ dossier.numero }} — EIP{% endblock %}
 
 {% block breadcrumb %}
@@ -166,18 +167,18 @@
                             <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
                                 <tr>
                                     <td class="text-muted">Prix de vente HT</td>
-                                    <td class="text-end fw-semibold">{% if dossier.variante %}{{ dossier.variante.ht|floatformat:"-2" }}{% else %}—{% endif %} XPF</td>
+                                    <td class="text-end fw-semibold">{% if dossier.variante %}{{ dossier.variante.ht|xpf }}{% else %}—{% endif %}</td>
                                 </tr>
                                 {% for type_lib, pr in dossier.pr_prevu_par_type.items %}
                                 <tr>
                                     <td class="text-muted">— {{ type_lib }}</td>
-                                    <td class="text-end text-danger">- {{ pr|floatformat:"-2" }} XPF</td>
+                                    <td class="text-end text-danger">- {{ pr|xpf }}</td>
                                 </tr>
                                 {% endfor %}
                                 <tr style="border-top:2px solid var(--bs-border-color);">
                                     <td class="fw-bold">Gain prévu</td>
                                     <td class="text-end fw-bold {% if dossier.gain_prevu < 0 %}text-danger{% else %}text-success{% endif %}">
-                                        {{ dossier.gain_prevu|floatformat:"-2" }} XPF
+                                        {{ dossier.gain_prevu|xpf }}
                                     </td>
                                 </tr>
                             </table>
@@ -193,18 +194,18 @@
                             <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
                                 <tr>
                                     <td class="text-muted">Prix de vente HT</td>
-                                    <td class="text-end fw-semibold">{% if dossier.variante %}{{ dossier.variante.ht|floatformat:"-2" }}{% else %}—{% endif %} XPF</td>
+                                    <td class="text-end fw-semibold">{% if dossier.variante %}{{ dossier.variante.ht|xpf }}{% else %}—{% endif %}</td>
                                 </tr>
                                 {% for type_lib, pr in dossier.pr_reel_par_type.items %}
                                 <tr>
                                     <td class="text-muted">— {{ type_lib }}</td>
-                                    <td class="text-end text-danger">- {{ pr|floatformat:"-2" }} XPF</td>
+                                    <td class="text-end text-danger">- {{ pr|xpf }}</td>
                                 </tr>
                                 {% endfor %}
                                 <tr style="border-top:2px solid var(--bs-border-color);">
                                     <td class="fw-bold">Gain réel</td>
                                     <td class="text-end fw-bold {% if dossier.gain_reel < 0 %}text-danger{% else %}text-success{% endif %}">
-                                        {{ dossier.gain_reel|floatformat:"-2" }} XPF
+                                        {{ dossier.gain_reel|xpf }}
                                     </td>
                                 </tr>
                             </table>

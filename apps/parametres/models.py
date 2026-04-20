@@ -2,6 +2,21 @@ import uuid
 from django.db import models
 
 
+class Section(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    libelle = models.CharField(max_length=100, unique=True)
+    ordre = models.PositiveIntegerField(default=0)
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Section'
+        verbose_name_plural = 'Sections'
+        ordering = ['ordre', 'libelle']
+
+    def __str__(self):
+        return self.libelle
+
+
 class TGC(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     code = models.CharField(max_length=20, unique=True)

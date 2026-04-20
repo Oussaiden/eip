@@ -535,10 +535,12 @@
         </div>
 
         <div class="sidebar-bottom">
-            <a href="{% url 'parametres:index' %}" data-path="/parametres/">
+            {% if request.user.is_staff %}
+            <a href="/admin/" data-path="/admin/">
                 <i class="bi bi-gear"></i>
                 <span class="nav-label">Paramètres</span>
             </a>
+            {% endif %}
         </div>
 
     </nav>

@@ -10,8 +10,9 @@ class ArticleFournisseurInline(admin.TabularInline):
 @admin.register(Article)
 class ArticleAdmin(admin.ModelAdmin):
     list_display = ['reference', 'designation', 'categorie', 'unite', 'stock_actuel', 'seuil_minimum', 'actif']
-    list_filter = ['categorie', 'actif']
+    list_filter = ['categorie', 'sections', 'actif']
     search_fields = ['reference', 'designation']
+    filter_horizontal = ['sections']
     inlines = [ArticleFournisseurInline]
 
     def stock_bas(self, obj):

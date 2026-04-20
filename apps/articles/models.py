@@ -39,6 +39,12 @@ class Article(models.Model):
         on_delete=models.PROTECT,
         related_name='articles'
     )
+    sections = models.ManyToManyField(
+        'parametres.Section',
+        blank=True,
+        related_name='articles',
+        verbose_name='Sections'
+    )
     tgc_achat = models.ForeignKey(
         'parametres.TGC',
         on_delete=models.PROTECT,

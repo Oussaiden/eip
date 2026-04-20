@@ -43,6 +43,14 @@
                 </div>
             </div>
 
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Sections</label>
+                <div class="d-flex flex-wrap gap-3" style="font-size:13px;">
+                    {{ form.sections }}
+                </div>
+                {% if form.sections.errors %}<div class="text-danger small">{{ form.sections.errors }}</div>{% endif %}
+            </div>
+
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">TGC achat</label>

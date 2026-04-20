@@ -40,9 +40,15 @@
             </div>
             {% endif %}
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">Type de ligne <span class="text-danger">*</span></label>
-                {{ form.type }}
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Section <span class="text-danger">*</span></label>
+                    {{ form.section }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Type de ligne <span class="text-danger">*</span></label>
+                    {{ form.type }}
+                </div>
             </div>
 
             <div id="bloc_article" class="mb-3" style="display:none;">
@@ -118,13 +124,52 @@
 
 {% block extra_js %}
 <script>
-    const typeSelect = document.getElementById('id_type');
+    const typeSelect    = document.getElementById('id_type');
+    const sectionSelect = document.getElementById('id_section');
     const articleSelect = document.getElementById('id_article');
-    const tgcSelect = document.getElementById('id_tgc_obj');
-    const blocArticle = document.getElementById('bloc_article');
+    const tgcSelect     = document.getElementById('id_tgc_obj');
+    const blocArticle   = document.getElementById('bloc_article');
     const blocDesignation = document.getElementById('bloc_designation');
-    const blocChiffres = document.getElementById('bloc_chiffres');
-    const ARTICLE_BASE_URL = '/dossiers/api/article/';
+    const blocChiffres  = document.getElementById('bloc_chiffres');
+    const ARTICLE_BASE_URL   = '/dossiers/api/article/';
+    const SECTION_BASE_URL   = '/dossiers/api/section/';
+
+    // Sauvegarde de toutes les options articles pour reset
+    const allArticleOptions = Array.from(articleSelect.options).map(o => ({value: o.value, text: o.text}));
+
+    function filtrerArticlesParSection() {
+        const sectionId = sectionSelect ? sectionSelect.value : '';
+        if (!sectionId) {
+            // Restaurer toutes les options
+            articleSelect.innerHTML = '';
+            allArticleOptions.forEach(o => {
+                const opt = new Option(o.text, o.value);
+                articleSelect.add(opt);
+            });
+            return;
+        }
+        fetch(SECTION_BASE_URL + sectionId + '/articles/')
+            .then(r => r.json())
+            .then(data => {
+                const currentVal = articleSelect.value;
+                articleSelect.innerHTML = '<option value="">— Aucun article —</option>';
+                data.articles.forEach(a => {
+                    const opt = new Option(a.text, a.id);
+                    articleSelect.add(opt);
+                });
+                // Reselect si l'article courant est dans la nouvelle liste
+                if (data.articles.some(a => a.id === currentVal)) {
+                    articleSelect.value = currentVal;
+                }
+            })
+            .catch(() => {});
+    }
+
+    if (sectionSelect) {
+        sectionSelect.addEventListener('change', filtrerArticlesParSection);
+        // Filtrer au chargement si une section est déjà sélectionnée
+        if (sectionSelect.value) filtrerArticlesParSection();
+    }
 
     function fmt(val) {
         return Math.round(val).toLocaleString('fr-FR') + ' XPF';

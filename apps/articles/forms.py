@@ -1,6 +1,6 @@
 from django import forms
 from .models import Article, Fournisseur, ArticleFournisseur, MouvementStock
-from apps.parametres.models import Categorie, Unite, TGC
+from apps.parametres.models import Categorie, Unite, TGC, Section
 
 
 class ArticleForm(forms.ModelForm):
@@ -15,11 +15,13 @@ class ArticleForm(forms.ModelForm):
         self.fields['tgc_achat'].empty_label = 'TGC 0%'
         self.fields['tgc_vente'].queryset = TGC.objects.filter(actif=True).order_by('taux')
         self.fields['tgc_vente'].empty_label = 'TGC 0%'
+        self.fields['sections'].queryset = Section.objects.filter(actif=True).order_by('ordre', 'libelle')
 
     class Meta:
         model = Article
         fields = [
             'reference', 'designation', 'categorie', 'unite',
+            'sections',
             'tgc_achat', 'tgc_vente',
             'prix_vente_ht', 'seuil_minimum',
             'notes', 'actif'
@@ -34,9 +36,11 @@ class ArticleForm(forms.ModelForm):
             'prix_vente_ht': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'seuil_minimum': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'sections': forms.CheckboxSelectMultiple(),
             'actif': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
+            'sections': 'Sections',
             'prix_vente_ht': 'Prix de vente HT',
             'tgc_achat': 'TGC achat',
             'tgc_vente': 'TGC vente',

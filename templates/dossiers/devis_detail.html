@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load eip_tags %}
 {% block title %}{{ devis.numero }} — EIP{% endblock %}
 
 {% block breadcrumb %}
@@ -10,6 +11,9 @@
 <div class="d-flex align-items-center justify-content-between mb-3">
     <h4 class="fw-bold mb-0"><i class="bi bi-file-text me-2"></i>{{ devis.numero }}</h4>
     <div class="d-flex gap-2">
+        <a href="{% url 'dossiers:pdf' devis.pk %}" class="btn btn-sm btn-outline-danger" target="_blank" title="Télécharger le PDF">
+            <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+        </a>
         <a href="{% url 'dossiers:update' devis.pk %}" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-pencil me-1"></i>Modifier
         </a>
@@ -88,52 +92,132 @@
 
     <div class="col-lg-4">
         <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent fw-semibold border-0 pt-3">
+            <div class="card-header bg-transparent fw-semibold border-0 pt-3 d-flex align-items-center gap-2">
                 <span style="font-size:13px;"><i class="bi bi-cash-stack me-2 text-primary"></i>Totaux</span>
+                {% if total_context.mode == 'acceptee' %}
+                <span class="badge bg-success ms-auto">Variante acceptée</span>
+                {% elif total_context.mode == 'fourchette' %}
+                <span class="badge bg-secondary ms-auto">{{ total_context.nb }} variantes</span>
+                {% endif %}
             </div>
             <div class="card-body">
+
+                {% if total_context.mode == 'vide' %}
+                <p class="text-muted mb-0" style="font-size:13px;">Aucune variante — ajoutez une variante pour voir les totaux.</p>
+
+                {% elif total_context.mode == 'fourchette' %}
                 <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
                     <tr>
                         <td class="text-muted">Total HT</td>
-                        <td class="fw-semibold text-end">{{ devis.ht|floatformat:"-2" }} XPF</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">TGC</td>
-                        <td class="text-end">{{ devis.tgc|floatformat:"-2" }} XPF</td>
+                        <td class="text-end fw-semibold">
+                            {{ total_context.ht_min|montant }}
+                            {% if total_context.ht_min != total_context.ht_max %}→ {{ total_context.ht_max|montant }}{% endif %}
+                            XPF
+                        </td>
                     </tr>
                     <tr style="border-top:2px solid var(--bs-border-color);">
                         <td class="fw-bold">Total TTC</td>
-                        <td class="fw-bold text-end fs-6">{{ devis.ttc|floatformat:"-2" }} XPF</td>
+                        <td class="fw-bold text-end fs-6">
+                            {{ total_context.ttc_min|montant }}
+                            {% if total_context.ttc_min != total_context.ttc_max %}→ {{ total_context.ttc_max|montant }}{% endif %}
+                            XPF
+                        </td>
+                    </tr>
+                    {% if peut_voir_gain %}
+                    <tr style="border-top:2px solid var(--bs-border-color);">
+                        <td class="text-muted" style="color:#198754 !important;">Gain</td>
+                        <td class="text-end fw-semibold" style="color:#198754;">
+                            {{ total_context.gain_min|montant }}
+                            {% if total_context.gain_min != total_context.gain_max %}→ {{ total_context.gain_max|montant }}{% endif %}
+                            XPF
+                        </td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td colspan="2" class="text-muted pt-2" style="font-size:11px;">
+                            <i class="bi bi-info-circle me-1"></i>Fourchette selon les {{ total_context.nb }} variantes — acceptez-en une pour fixer le montant.
+                        </td>
                     </tr>
                 </table>
+
+                {% else %}
+                <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
+                    <tr>
+                        <td class="text-muted">Total HT</td>
+                        <td class="fw-semibold text-end">{{ total_context.variante.ht|xpf }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">TGC</td>
+                        <td class="text-end">{{ total_context.variante.tgc|xpf }}</td>
+                    </tr>
+                    <tr style="border-top:2px solid var(--bs-border-color);">
+                        <td class="fw-bold">Total TTC</td>
+                        <td class="fw-bold text-end fs-6">{{ total_context.variante.ttc|xpf }}</td>
+                    </tr>
+                    {% if peut_voir_gain %}
+                    <tr style="border-top:2px solid var(--bs-border-color);">
+                        <td class="text-muted" style="color:#198754 !important;">Gain</td>
+                        <td class="text-end fw-semibold" style="{% if total_context.variante.gain < 0 %}color:#dc3545;{% else %}color:#198754;{% endif %}">
+                            {{ total_context.variante.gain|xpf }}
+                        </td>
+                    </tr>
+                    {% endif %}
+                </table>
+                {% endif %}
+
             </div>
         </div>
     </div>
 </div>
 
 <!-- Variantes -->
-{% for variante in variantes %}
-<div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-3">
-            <span class="fw-bold" style="font-size:15px;">{{ variante.libelle }}</span>
-            {% if variante.statut == 'brouillon' %}
-            <span class="badge bg-secondary">Brouillon</span>
-            {% elif variante.statut == 'envoye' %}
-            <span class="badge bg-primary">Envoyé</span>
-            {% elif variante.statut == 'accepte' %}
-            <span class="badge bg-success">Accepté</span>
-            {% elif variante.statut == 'refuse' %}
-            <span class="badge bg-danger">Refusé</span>
+{% for item in variantes_data %}
+{% with variante=item.variante vid=forloop.counter %}
+{% if not forloop.first %}<hr class="my-4" style="border-color:var(--bs-border-color);opacity:1;">{% endif %}
+<div class="card border-0 shadow-sm mb-2" style="border-left:4px solid {% if variante.statut == 'accepte' %}#198754{% elif variante.statut == 'refuse' %}#dc3545{% elif variante.statut == 'envoye' %}#0d6efd{% else %}#6c757d{% endif %} !important;">
+
+    <!-- En-tête variante — toujours visible -->
+    <div class="card-header bg-transparent border-0 pt-2 pb-2 d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-link p-0 text-body text-decoration-none"
+                onclick="toggleVariante('v{{ vid }}')" title="Plier / Déplier">
+            <i class="bi bi-chevron-down" id="vicon-v{{ vid }}" style="font-size:15px;"></i>
+        </button>
+        <span class="fw-bold" style="font-size:15px;">{{ variante.libelle }}</span>
+        {% if variante.statut == 'brouillon' %}
+        <span class="badge bg-secondary">Brouillon</span>
+        {% elif variante.statut == 'envoye' %}
+        <span class="badge bg-primary">Envoyé</span>
+        {% elif variante.statut == 'accepte' %}
+        <span class="badge bg-success">Accepté</span>
+        {% elif variante.statut == 'refuse' %}
+        <span class="badge bg-danger">Refusé</span>
+        {% endif %}
+
+        <!-- Totaux toujours visibles -->
+        <span class="ms-auto d-flex gap-4 align-items-center" style="font-size:13px;">
+            <span><span class="fw-semibold">{{ variante.ht|xpf }}</span> <span class="text-muted" style="font-size:11px;">HT</span></span>
+            <span><span class="fw-bold">{{ variante.ttc|xpf }}</span> <span class="text-muted" style="font-size:11px;">TTC</span></span>
+            {% if peut_voir_gain %}
+            <span class="fw-semibold" style="{% if variante.gain < 0 %}color:#dc3545;{% else %}color:#198754;{% endif %}">
+                {{ variante.gain|xpf }} <span class="text-muted" style="font-size:11px;">gain</span>
+            </span>
             {% endif %}
-        </div>
-        <div class="d-flex gap-2">
+        </span>
+
+        <!-- Boutons d'action -->
+        <div class="d-flex gap-2 ms-3">
             <a href="{% url 'dossiers:ligne_create' variante.pk %}" class="btn btn-sm btn-outline-primary" title="Ajouter une ligne">
                 <i class="bi bi-plus-lg"></i>
             </a>
             <a href="{% url 'dossiers:variante_update' variante.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
                 <i class="bi bi-pencil"></i>
             </a>
+            <form method="post" action="{% url 'dossiers:variante_dupliquer' variante.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Dupliquer">
+                    <i class="bi bi-copy"></i>
+                </button>
+            </form>
             {% if variante.statut == 'brouillon' and devis.statut != 'accepte' %}
             <form method="post" action="{% url 'dossiers:variante_accepter' variante.pk %}" onsubmit="return confirm('Accepter cette variante et créer le dossier FAB ?')">
                 {% csrf_token %}
@@ -151,7 +235,8 @@
         </div>
     </div>
 
-    <div class="card-body p-0">
+    <!-- Corps variante — pliable -->
+    <div id="vbody-v{{ vid }}" class="card-body p-0">
         <table class="table table-sm mb-0" style="font-size:13px;">
             <thead>
                 <tr>
@@ -169,69 +254,86 @@
                     <th class="eip-th"></th>
                 </tr>
             </thead>
+
+            {% if item.sections %}
+            {% for section in item.sections %}
+            {% with sid=forloop.counter %}
+
+            <!-- En-tête section — toujours visible, cliquable -->
             <tbody>
-                {% for ligne in variante.lignes.all %}
-                <tr {% if ligne.type == 'sous_total' %}style="font-weight:600;border-top:2px solid var(--bs-border-color);"{% endif %}
-                    {% if ligne.type == 'texte' %}class="text-muted"{% endif %}>
-                    <td class="eip-td">
-                        {% if ligne.type == 'sous_total' %}
-                        <span class="text-muted small">SOUS-TOTAL</span>
-                        {% elif ligne.type == 'texte' %}
-                        <em>{{ ligne.designation }}</em>
-                        {% else %}
-                        {{ ligne.designation }}
-                        {% endif %}
+                <tr style="background:var(--bs-tertiary-bg);cursor:pointer;border-top:1px solid var(--bs-border-color);"
+                    onclick="toggleSection('s{{ vid }}-{{ sid }}')">
+                    <td colspan="4" class="eip-td fw-semibold"
+                        style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--bs-secondary-color);">
+                        <i class="bi bi-chevron-down me-1" id="sicon-s{{ vid }}-{{ sid }}"></i>{{ section.label }}
                     </td>
-                    <td class="eip-td text-end">
-                        {% if ligne.type not in 'sous_total,texte' %}{{ ligne.qte|floatformat:"-2" }}{% endif %}
-                    </td>
-                    <td class="eip-td text-end">
-                        {% if ligne.type not in 'sous_total,texte' %}{{ ligne.pu|floatformat:"-2" }}{% endif %}
-                    </td>
-                    <td class="eip-td text-end">
-                        {% if ligne.remise %}{{ ligne.remise|floatformat:"-2" }} %{% else %}—{% endif %}
-                    </td>
-                    <td class="eip-td text-end fw-semibold">{{ ligne.ht|floatformat:"-2" }}</td>
-                    <td class="eip-td text-end">{{ ligne.tgc|floatformat:"-2" }}</td>
-                    <td class="eip-td text-end fw-semibold">{{ ligne.ttc|floatformat:"-2" }}</td>
+                    <td class="eip-td text-end fw-semibold">{{ section.ht|xpf }}</td>
+                    <td class="eip-td text-end">{{ section.tgc|xpf }}</td>
+                    <td class="eip-td text-end fw-semibold">{{ section.ttc|xpf }}</td>
                     {% if peut_voir_gain %}
-                    <td class="eip-td text-end" style="color:#198754;">
-                        {% if ligne.type not in 'sous_total,texte' %}{{ ligne.pru|floatformat:"-2" }}{% endif %}
+                    <td class="eip-td"></td>
+                    <td class="eip-td text-end fw-semibold" style="{% if section.gain < 0 %}color:#dc3545;{% else %}color:#198754;{% endif %}">
+                        {{ section.gain|xpf }}
                     </td>
+                    {% endif %}
+                    <td class="eip-td"></td>
+                </tr>
+            </tbody>
+
+            <!-- Lignes de la section — pliables -->
+            <tbody id="slines-s{{ vid }}-{{ sid }}">
+                {% for ligne in section.lignes %}
+                <tr {% if ligne.type == 'texte' %}class="text-muted fst-italic"{% endif %}>
+                    <td class="eip-td ps-4">
+                        {% if ligne.type == 'texte' %}<em>{{ ligne.designation }}</em>
+                        {% else %}{{ ligne.designation }}{% endif %}
+                    </td>
+                    <td class="eip-td text-end">{% if ligne.type != 'texte' %}{{ ligne.qte|floatformat:"-2" }}{% endif %}</td>
+                    <td class="eip-td text-end">{% if ligne.type != 'texte' %}{{ ligne.pu|montant }}{% endif %}</td>
+                    <td class="eip-td text-end">{% if ligne.remise %}{{ ligne.remise|floatformat:"-2" }} %{% else %}—{% endif %}</td>
+                    <td class="eip-td text-end fw-semibold">{% if ligne.type != 'texte' %}{{ ligne.ht|montant }}{% endif %}</td>
+                    <td class="eip-td text-end">{% if ligne.type != 'texte' %}{{ ligne.tgc|montant }}{% endif %}</td>
+                    <td class="eip-td text-end fw-semibold">{% if ligne.type != 'texte' %}{{ ligne.ttc|montant }}{% endif %}</td>
+                    {% if peut_voir_gain %}
+                    <td class="eip-td text-end" style="color:#198754;">{% if ligne.type != 'texte' %}{{ ligne.pru|montant }}{% endif %}</td>
                     <td class="eip-td text-end" style="{% if ligne.gain < 0 %}color:#dc3545;{% else %}color:#198754;{% endif %}">
-                        {{ ligne.gain|floatformat:"-2" }}
+                        {% if ligne.type != 'texte' %}{{ ligne.gain|montant }}{% endif %}
                     </td>
                     {% endif %}
                     <td class="eip-td text-end">
-                        {% if ligne.type != 'texte' %}
-                        <a href="{% url 'dossiers:ligne_update' ligne.pk %}" class="btn btn-sm btn-outline-secondary">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        {% endif %}
+                        <a href="{% url 'dossiers:ligne_update' ligne.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
                         <form method="post" action="{% url 'dossiers:ligne_delete' ligne.pk %}" class="d-inline" onsubmit="return confirm('Supprimer cette ligne ?')">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                         </form>
                     </td>
                 </tr>
-                {% empty %}
+                {% endfor %}
+            </tbody>
+
+            {% endwith %}
+            {% endfor %}
+
+            {% else %}
+            <tbody>
                 <tr>
                     <td colspan="{% if peut_voir_gain %}10{% else %}8{% endif %}" class="text-center text-muted py-3 eip-td">
                         Aucune ligne — <a href="{% url 'dossiers:ligne_create' variante.pk %}">Ajouter une ligne</a>
                     </td>
                 </tr>
-                {% endfor %}
             </tbody>
+            {% endif %}
+
             <tfoot>
                 <tr style="border-top:2px solid var(--bs-border-color);">
                     <td colspan="4" class="eip-td fw-bold text-end">Total variante</td>
-                    <td class="eip-td text-end fw-bold">{{ variante.ht|floatformat:"-2" }}</td>
-                    <td class="eip-td text-end">{{ variante.tgc|floatformat:"-2" }}</td>
-                    <td class="eip-td text-end fw-bold">{{ variante.ttc|floatformat:"-2" }} XPF</td>
+                    <td class="eip-td text-end fw-bold">{{ variante.ht|xpf }}</td>
+                    <td class="eip-td text-end">{{ variante.tgc|xpf }}</td>
+                    <td class="eip-td text-end fw-bold">{{ variante.ttc|xpf }}</td>
                     {% if peut_voir_gain %}
                     <td class="eip-td"></td>
                     <td class="eip-td text-end fw-bold" style="{% if variante.gain < 0 %}color:#dc3545;{% else %}color:#198754;{% endif %}">
-                        {{ variante.gain|floatformat:"-2" }} XPF
+                        {{ variante.gain|xpf }}
                     </td>
                     {% endif %}
                     <td class="eip-td"></td>
@@ -239,15 +341,14 @@
                 {% if variante.remise_globale %}
                 <tr>
                     <td colspan="4" class="eip-td text-end text-muted">Remise globale {{ variante.remise_globale|floatformat:"-2" }} %</td>
-                    <td colspan="{% if peut_voir_gain %}6{% else %}4{% endif %}" class="eip-td text-end text-danger">
-                        - {{ variante.ht|floatformat:"-2" }} XPF
-                    </td>
+                    <td colspan="{% if peut_voir_gain %}6{% else %}4{% endif %}" class="eip-td text-end text-danger">- {{ variante.ht|xpf }}</td>
                 </tr>
                 {% endif %}
             </tfoot>
         </table>
     </div>
 </div>
+{% endwith %}
 {% empty %}
 <div class="card border-0 shadow-sm">
     <div class="card-body text-center text-muted py-4" style="font-size:13px;">
@@ -256,5 +357,27 @@
     </div>
 </div>
 {% endfor %}
+
+{% block extra_js %}
+<script>
+function toggleVariante(vid) {
+    const body = document.getElementById('vbody-' + vid);
+    const icon = document.getElementById('vicon-' + vid);
+    const hidden = body.style.display === 'none';
+    body.style.display = hidden ? '' : 'none';
+    icon.classList.toggle('bi-chevron-down', hidden);
+    icon.classList.toggle('bi-chevron-right', !hidden);
+}
+
+function toggleSection(sid) {
+    const tbody = document.getElementById('slines-' + sid);
+    const icon  = document.getElementById('sicon-' + sid);
+    const hidden = tbody.style.display === 'none';
+    tbody.style.display = hidden ? '' : 'none';
+    icon.classList.toggle('bi-chevron-down', hidden);
+    icon.classList.toggle('bi-chevron-right', !hidden);
+}
+</script>
+{% endblock %}
 
 {% endblock %}

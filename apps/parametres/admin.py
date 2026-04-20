@@ -1,5 +1,15 @@
 from django.contrib import admin
-from .models import TGC, Categorie, Unite, TypeLigneDossier, ModePaiement, TypeTransport, TypeMachine, NumerotationDocument, Parametre
+from .models import Section, TGC, Categorie, Unite, TypeLigneDossier, ModePaiement, TypeTransport, TypeMachine, NumerotationDocument, Parametre
+
+
+@admin.register(Section)
+class SectionAdmin(admin.ModelAdmin):
+    list_display = ['libelle', 'ordre', 'actif']
+    list_editable = ['ordre', 'actif']
+    list_display_links = ['libelle']
+    list_filter = ['actif']
+    search_fields = ['libelle']
+    ordering = ['ordre', 'libelle']
 
 
 @admin.register(TGC)

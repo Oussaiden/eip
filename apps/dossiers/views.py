@@ -3,12 +3,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import render_to_string
 from datetime import timedelta
+from decimal import Decimal
 from .models import Devis, VarianteDevis, LigneDevis, Dossier, LigneDossier
 from .forms import DevisForm, VarianteDevisForm, LigneDevisForm, DossierForm
 from apps.articles.models import Article
-from apps.parametres.models import Parametre
+from apps.parametres.models import Parametre, Section
 
 
 def get_delai_validite():
@@ -23,12 +25,19 @@ def get_delai_validite():
 def devis_list(request):
     search = request.GET.get('q', '')
     statut = request.GET.get('statut', '')
-    devis = Devis.objects.filter(is_deleted=False).select_related('client')
+    from django.db.models import Count
+    devis = Devis.objects.filter(is_deleted=False).select_related('client').annotate(
+        nb_variantes=Count('variantes', filter=Q(variantes__is_deleted=False))
+    )
     if search:
-        devis = devis.filter(
-            Q(numero__icontains=search) |
-            Q(client__raison_sociale__icontains=search)
-        )
+        from decimal import Decimal, InvalidOperation
+        q = Q(numero__icontains=search) | Q(client__raison_sociale__icontains=search)
+        try:
+            montant = Decimal(search.replace('\u202f', '').replace(' ', '').replace(',', '.'))
+            q |= Q(ttc=montant)
+        except InvalidOperation:
+            pass
+        devis = devis.filter(q)
     if statut:
         devis = devis.filter(statut=statut)
     return render(request, 'dossiers/devis_list.html', {
@@ -44,10 +53,80 @@ def devis_detail(request, pk):
     devis = get_object_or_404(Devis, pk=pk, is_deleted=False)
     variantes = devis.variantes.filter(is_deleted=False).prefetch_related('lignes')
     peut_voir_gain = request.user.role in ['direction', 'technico_commercial'] or request.user.is_staff
+
+    variante_acceptee = variantes.filter(statut='accepte').first()
+    nb_variantes = variantes.count()
+
+    if variante_acceptee:
+        total_context = {'mode': 'acceptee', 'variante': variante_acceptee}
+    elif nb_variantes == 1:
+        total_context = {'mode': 'unique', 'variante': variantes.first()}
+    elif nb_variantes > 1:
+        ttc_values = [v.ttc for v in variantes]
+        ht_values = [v.ht for v in variantes]
+        gain_values = [v.gain for v in variantes]
+        total_context = {
+            'mode': 'fourchette',
+            'nb': nb_variantes,
+            'ttc_min': min(ttc_values),
+            'ttc_max': max(ttc_values),
+            'ht_min': min(ht_values),
+            'ht_max': max(ht_values),
+            'gain_min': min(gain_values),
+            'gain_max': max(gain_values),
+        }
+    else:
+        total_context = {'mode': 'vide'}
+
+    # Données par section pour chaque variante
+    sections_actives = Section.objects.filter(actif=True).order_by('ordre', 'libelle')
+    variantes_data = []
+    for variante in variantes:
+        sections_data = []
+        for section in sections_actives:
+            lignes = list(variante.lignes.filter(section=section).order_by('ordre'))
+            if not lignes:
+                continue
+            lignes_chiffrees = [l for l in lignes if l.type in ('article', 'libre')]
+            ht = sum((l.ht for l in lignes_chiffrees), Decimal('0'))
+            tgc = sum((l.tgc for l in lignes_chiffrees), Decimal('0'))
+            ttc = ht + tgc
+            gain = sum((l.gain for l in lignes_chiffrees), Decimal('0'))
+            sections_data.append({
+                'section': section,
+                'label': section.libelle,
+                'lignes': lignes,
+                'ht': ht,
+                'tgc': tgc,
+                'ttc': ttc,
+                'gain': gain,
+            })
+        # Lignes sans section
+        lignes_sans_section = list(variante.lignes.filter(section__isnull=True).order_by('ordre'))
+        if lignes_sans_section:
+            lignes_chiffrees = [l for l in lignes_sans_section if l.type in ('article', 'libre')]
+            ht = sum((l.ht for l in lignes_chiffrees), Decimal('0'))
+            tgc = sum((l.tgc for l in lignes_chiffrees), Decimal('0'))
+            sections_data.append({
+                'section': None,
+                'label': 'Sans section',
+                'lignes': lignes_sans_section,
+                'ht': ht,
+                'tgc': tgc,
+                'ttc': ht + tgc,
+                'gain': sum((l.gain for l in lignes_chiffrees), Decimal('0')),
+            })
+        variantes_data.append({
+            'variante': variante,
+            'sections': sections_data,
+        })
+
     return render(request, 'dossiers/devis_detail.html', {
         'devis': devis,
         'variantes': variantes,
+        'variantes_data': variantes_data,
         'peut_voir_gain': peut_voir_gain,
+        'total_context': total_context,
     })
 
 
@@ -95,6 +174,46 @@ def devis_update(request, pk):
         'devis': devis,
         'delai_validite': delai,
     })
+
+
+@login_required
+def devis_dupliquer(request, pk):
+    devis = get_object_or_404(Devis, pk=pk, is_deleted=False)
+    if request.method == 'POST':
+        nouveau = Devis.objects.create(
+            client=devis.client,
+            date=timezone.now().date(),
+            date_validite=devis.date_validite,
+            description=devis.description,
+            notes=devis.notes,
+            remise_globale=devis.remise_globale,
+            created_by=request.user,
+        )
+        for variante in devis.variantes.filter(is_deleted=False):
+            nouvelle_variante = VarianteDevis.objects.create(
+                devis=nouveau,
+                libelle=variante.libelle,
+                remise_globale=variante.remise_globale,
+                ordre=variante.ordre,
+            )
+            for ligne in variante.lignes.all():
+                LigneDevis.objects.create(
+                    variante=nouvelle_variante,
+                    type=ligne.type,
+                    section=ligne.section,
+                    article=ligne.article,
+                    designation=ligne.designation,
+                    qte=ligne.qte,
+                    pu=ligne.pu,
+                    pru=ligne.pru,
+                    taux_tgc=ligne.taux_tgc,
+                    remise=ligne.remise,
+                    ordre=ligne.ordre,
+                )
+            nouvelle_variante.recalculer()
+        messages.success(request, f'Devis {nouveau.numero} créé par duplication de {devis.numero}.')
+        return redirect('dossiers:detail', pk=nouveau.pk)
+    return redirect('dossiers:detail', pk=devis.pk)
 
 
 @login_required
@@ -156,6 +275,36 @@ def variante_delete(request, pk):
         variante.is_deleted = True
         variante.save()
         messages.success(request, f'Variante {variante.libelle} supprimée.')
+    return redirect('dossiers:detail', pk=devis.pk)
+
+
+@login_required
+def variante_dupliquer(request, pk):
+    variante = get_object_or_404(VarianteDevis, pk=pk, is_deleted=False)
+    devis = variante.devis
+    if request.method == 'POST':
+        nouvelle = VarianteDevis.objects.create(
+            devis=devis,
+            libelle=f"{variante.libelle} (copie)",
+            remise_globale=variante.remise_globale,
+            ordre=devis.variantes.count(),
+        )
+        for ligne in variante.lignes.all():
+            LigneDevis.objects.create(
+                variante=nouvelle,
+                type=ligne.type,
+                section=ligne.section,
+                article=ligne.article,
+                designation=ligne.designation,
+                qte=ligne.qte,
+                pu=ligne.pu,
+                pru=ligne.pru,
+                taux_tgc=ligne.taux_tgc,
+                remise=ligne.remise,
+                ordre=ligne.ordre,
+            )
+        nouvelle.recalculer()
+        messages.success(request, f'Variante « {nouvelle.libelle} » créée.')
     return redirect('dossiers:detail', pk=devis.pk)
 
 
@@ -255,6 +404,79 @@ def article_info(request, pk):
         'tgc_id': str(article.tgc_vente.id) if article.tgc_vente else '',
         'unite': article.unite.abreviation,
     })
+
+
+@login_required
+def articles_par_section(request, section_pk):
+    articles = Article.objects.filter(actif=True, sections=section_pk).order_by('designation')
+    return JsonResponse({
+        'articles': [{'id': str(a.pk), 'text': f"{a.reference} — {a.designation}"} for a in articles]
+    })
+
+
+@login_required
+def devis_pdf(request, pk):
+    devis = get_object_or_404(Devis, pk=pk, is_deleted=False)
+    variantes = devis.variantes.filter(is_deleted=False).prefetch_related('lignes')
+    sections_actives = Section.objects.filter(actif=True).order_by('ordre', 'libelle')
+
+    variantes_data = []
+    for variante in variantes:
+        sections_data = []
+        for section in sections_actives:
+            lignes = list(variante.lignes.filter(section=section).order_by('ordre'))
+            if not lignes:
+                continue
+            lignes_chiffrees = [l for l in lignes if l.type in ('article', 'libre')]
+            ht = sum((l.ht for l in lignes_chiffrees), Decimal('0'))
+            tgc = sum((l.tgc for l in lignes_chiffrees), Decimal('0'))
+            sections_data.append({
+                'label': section.libelle,
+                'lignes': lignes,
+                'ht': ht,
+                'tgc': tgc,
+                'ttc': ht + tgc,
+            })
+        lignes_sans_section = list(variante.lignes.filter(section__isnull=True).order_by('ordre'))
+        if lignes_sans_section:
+            lignes_chiffrees = [l for l in lignes_sans_section if l.type in ('article', 'libre')]
+            ht = sum((l.ht for l in lignes_chiffrees), Decimal('0'))
+            tgc = sum((l.tgc for l in lignes_chiffrees), Decimal('0'))
+            sections_data.append({
+                'label': 'Divers',
+                'lignes': lignes_sans_section,
+                'ht': ht,
+                'tgc': tgc,
+                'ttc': ht + tgc,
+            })
+        variantes_data.append({'variante': variante, 'sections': sections_data})
+
+    def get_param(cle, defaut=''):
+        try:
+            return Parametre.objects.get(cle=cle).valeur
+        except Parametre.DoesNotExist:
+            return defaut
+
+    societe = {
+        'nom': get_param('nom_societe', 'EIP Imprimerie'),
+        'adresse': get_param('adresse_societe', ''),
+        'telephone': get_param('telephone_societe', ''),
+        'email': get_param('email_societe', ''),
+        'siret': get_param('siret_societe', ''),
+    }
+
+    html_string = render_to_string('dossiers/devis_pdf.html', {
+        'devis': devis,
+        'variantes_data': variantes_data,
+        'societe': societe,
+        'request': request,
+    })
+
+    from weasyprint import HTML
+    pdf = HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="devis_{devis.numero}.pdf"'
+    return response
 
 
 @login_required

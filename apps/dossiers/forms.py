@@ -3,7 +3,7 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import Devis, VarianteDevis, LigneDevis, Dossier
 from apps.articles.models import Article
-from apps.parametres.models import TGC
+from apps.parametres.models import TGC, Section
 
 
 class DevisForm(forms.ModelForm):
@@ -49,13 +49,14 @@ class LigneDevisForm(forms.ModelForm):
         required=False,
         empty_label='TGC 0%',
         label='TGC',
-        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_tgc'}),
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_tgc_obj'}),
     )
 
     class Meta:
         model = LigneDevis
-        fields = ['type', 'article', 'designation', 'qte', 'pu', 'pru', 'remise']
+        fields = ['section', 'type', 'article', 'designation', 'qte', 'pu', 'pru', 'remise']
         widgets = {
+            'section': forms.Select(attrs={'class': 'form-select', 'id': 'id_section'}),
             'type': forms.Select(attrs={'class': 'form-select', 'id': 'id_type'}),
             'article': forms.Select(attrs={'class': 'form-select', 'id': 'id_article'}),
             'designation': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_designation'}),
@@ -65,12 +66,16 @@ class LigneDevisForm(forms.ModelForm):
             'remise': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'max': '100', 'id': 'id_remise'}),
         }
         labels = {
+            'section': 'Section',
             'pru': 'PRU',
             'remise': 'Remise (%)',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['section'].queryset = Section.objects.filter(actif=True).order_by('ordre', 'libelle')
+        self.fields['section'].empty_label = '— Choisir une section —'
+        self.fields['section'].required = False
         self.fields['article'].queryset = Article.objects.filter(actif=True).order_by('designation')
         self.fields['article'].empty_label = '— Aucun article —'
         self.fields['article'].required = False

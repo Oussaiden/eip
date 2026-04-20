@@ -122,13 +122,20 @@ class LigneDevis(models.Model):
     TYPES = [
         ('article', 'Article catalogue'),
         ('libre', 'Ligne libre'),
-        ('sous_total', 'Sous-total'),
         ('texte', 'Texte'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     variante = models.ForeignKey(VarianteDevis, on_delete=models.CASCADE, related_name='lignes', null=True, blank=True)
     type = models.CharField(max_length=20, choices=TYPES, default='libre')
+    section = models.ForeignKey(
+        'parametres.Section',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lignes_devis',
+        verbose_name='Section'
+    )
     article = models.ForeignKey('articles.Article', on_delete=models.PROTECT, null=True, blank=True, related_name='lignes_devis')
     designation = models.CharField(max_length=255, blank=True)
     qte = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -157,16 +164,6 @@ class LigneDevis(models.Model):
             self.tgc = self.ht * self.taux_tgc / 100
             self.ttc = self.ht + self.tgc
             self.gain = self.ht - (self.pru * self.qte)
-        elif self.type == 'sous_total':
-            if self.variante:
-                lignes_avant = self.variante.lignes.filter(
-                    ordre__lt=self.ordre,
-                    type__in=['article', 'libre']
-                )
-                self.ht = sum(l.ht for l in lignes_avant) or Decimal('0')
-                self.tgc = sum(l.tgc for l in lignes_avant) or Decimal('0')
-                self.ttc = self.ht + self.tgc
-                self.gain = sum(l.gain for l in lignes_avant) or Decimal('0')
         else:
             self.ht = Decimal('0')
             self.tgc = Decimal('0')
