@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python manage.py makemigrations dossiers --name add_section_to_lignedevis)",
+      "Bash(.venv/Scripts/python.exe manage.py makemigrations dossiers --name add_section_to_lignedevis)",
+      "Bash(.venv/Scripts/python.exe manage.py makemigrations articles --name=\"add_type_article\")",
+      "Bash(docker-compose build *)",
+      "Bash(docker-compose run *)",
+      "Bash(docker-compose up *)",
+      "Bash(docker compose *)",
+      "Bash(docker cp *)",
+      "Bash(docker exec *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}
