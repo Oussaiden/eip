@@ -8,3 +8,4 @@ anthropic
 django-htmx
 whitenoise
 Pillow
+gunicorn
