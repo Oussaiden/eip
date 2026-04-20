@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}{{ article.designation }} — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'articles:list' %}?onglet=service">Articles & Services</a></li>
+<li class="breadcrumb-item active">{{ article.designation }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-gear me-2"></i>{{ article.designation }}</h4>
+    <a href="{% url 'articles:service_update' article.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-pencil me-1"></i>Modifier
+    </a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#f3e8ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-currency-exchange" style="font-size:16px;color:#7c3aed;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Prix de vente HT</div>
+                    <div class="fw-bold">{{ article.prix_vente_ht|floatformat:"-2" }} XPF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-tools" style="font-size:16px;color:#1a4b8c;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Prix de revient</div>
+                    <div class="fw-bold">{{ article.prix_revient|floatformat:"-2" }} XPF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;{% if article.taux_marge > 0 %}background:#e8f5e9;{% elif article.taux_marge < 0 %}background:#fee2e2;{% else %}background:#f8f9fa;{% endif %}display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-percent" style="font-size:16px;{% if article.taux_marge > 0 %}color:#198754;{% elif article.taux_marge < 0 %}color:#dc3545;{% else %}color:#6c757d;{% endif %}"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Taux de marge</div>
+                    <div class="fw-bold {% if article.taux_marge > 0 %}text-success{% elif article.taux_marge < 0 %}text-danger{% endif %}">
+                        {{ article.taux_marge|floatformat:"1" }} %
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width:600px;">
+    <div class="card-body">
+        <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
+            <tr>
+                <td class="text-muted" style="width:35%">Référence</td>
+                <td class="fw-semibold">{{ article.reference }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Désignation</td>
+                <td>{{ article.designation }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Catégorie</td>
+                <td>{{ article.categorie.libelle }}</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Unité</td>
+                <td>{{ article.unite.libelle }} ({{ article.unite.abreviation }})</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Prix de revient</td>
+                <td>{{ article.prix_revient|floatformat:"-2" }} XPF</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Prix de vente HT</td>
+                <td class="fw-semibold">{{ article.prix_vente_ht|floatformat:"-2" }} XPF</td>
+            </tr>
+            <tr>
+                <td class="text-muted">Gain unitaire</td>
+                <td class="fw-semibold {% if article.gain > 0 %}text-success{% elif article.gain < 0 %}text-danger{% endif %}">
+                    {{ article.gain|floatformat:"-2" }} XPF
+                </td>
+            </tr>
+            <tr>
+                <td class="text-muted">Taux de marge</td>
+                <td class="fw-semibold {% if article.taux_marge > 0 %}text-success{% elif article.taux_marge < 0 %}text-danger{% endif %}">
+                    {{ article.taux_marge|floatformat:"1" }} %
+                </td>
+            </tr>
+            <tr>
+                <td class="text-muted">TGC vente</td>
+                <td>{{ article.tgc_vente.libelle|default:"TGC 0%" }}</td>
+            </tr>
+            {% if article.sections.exists %}
+            <tr>
+                <td class="text-muted">Sections</td>
+                <td>{% for s in article.sections.all %}{{ s.libelle }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td class="text-muted">Statut</td>
+                <td>
+                    {% if article.actif %}<span class="badge bg-success">Actif</span>
+                    {% else %}<span class="badge bg-secondary">Inactif</span>{% endif %}
+                </td>
+            </tr>
+            {% if article.notes %}
+            <tr>
+                <td class="text-muted">Notes</td>
+                <td>{{ article.notes }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endblock %}

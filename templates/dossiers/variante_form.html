@@ -24,6 +24,11 @@
                 {% if form.libelle.errors %}<div class="text-danger small">{{ form.libelle.errors }}</div>{% endif %}
             </div>
 
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Quantité</label>
+                {{ form.quantite }}
+            </div>
+
             <div class="mb-4">
                 <label class="form-label fw-semibold">Remise globale (%)</label>
                 {{ form.remise_globale }}

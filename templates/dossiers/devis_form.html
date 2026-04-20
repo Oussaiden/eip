@@ -20,7 +20,7 @@
             {% csrf_token %}
 
             <div class="row g-3 mb-3">
-                <div class="col-md-6">
+                <div class="col-md-5">
                     <label class="form-label fw-semibold">Client <span class="text-danger">*</span></label>
                     {{ form.client }}
                     {% if form.client.errors %}
@@ -35,12 +35,29 @@
                     <label class="form-label fw-semibold">Valide jusqu'au</label>
                     {{ form.date_validite }}
                 </div>
+                <div class="col-md-1 d-flex align-items-end pb-1">
+                    <div class="form-check mb-0">
+                        {{ form.urgent }}
+                        <label class="form-check-label fw-semibold text-danger" for="{{ form.urgent.id_for_label }}">
+                            <i class="bi bi-lightning-fill"></i> Urgent
+                        </label>
+                    </div>
+                </div>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-semibold">Description technique</label>
-                {{ form.description }}
-                <div class="form-text">Format, support, couleurs, finition... (ne figure pas sur le document imprimé)</div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Désignation</label>
+                    {{ form.description }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Format</label>
+                    {{ form.format }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Papier</label>
+                    {{ form.papier }}
+                </div>
             </div>
 
             <div class="mb-4">

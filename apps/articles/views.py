@@ -6,8 +6,8 @@ from django.contrib import messages
 from django.db.models import Q
 from django.http import HttpResponse
 from django.utils import timezone
-from .models import Article, Fournisseur, ArticleFournisseur, MouvementStock
-from .forms import ArticleForm, FournisseurForm, ArticleFournisseurForm, MouvementStockForm
+from .models import ArticleStock, ArticleService, Fournisseur, ArticleFournisseur, MouvementStock
+from .forms import ArticleStockForm, ArticleServiceForm, FournisseurForm, ArticleFournisseurForm, MouvementStockForm
 from apps.parametres.models import Categorie
 
 
@@ -26,54 +26,58 @@ def get_mouvements_filtres(article, type_mouvement, date_debut, date_fin, limite
     return mouvements[:limite_int]
 
 
+# ── Liste combinée ───────────────────────────────────────────────────────────
+
 @login_required
 def article_list(request):
     search = request.GET.get('q', '')
     categorie = request.GET.get('categorie', '')
     stock_bas = request.GET.get('stock_bas', '')
+    onglet = request.GET.get('onglet', 'stock')
 
-    articles = Article.objects.filter(actif=True)
+    stocks = ArticleStock.objects.filter(actif=True)
+    services = ArticleService.objects.filter(actif=True)
 
     if search:
-        articles = articles.filter(
-            Q(reference__icontains=search) |
-            Q(designation__icontains=search)
-        )
+        stocks = stocks.filter(Q(reference__icontains=search) | Q(designation__icontains=search))
+        services = services.filter(Q(reference__icontains=search) | Q(designation__icontains=search))
     if categorie:
-        articles = articles.filter(categorie__pk=categorie)
+        stocks = stocks.filter(categorie__pk=categorie)
+        services = services.filter(categorie__pk=categorie)
     if stock_bas == '1':
-        articles = [a for a in articles if a.stock_bas]
+        stocks = [a for a in stocks if a.stock_bas]
 
     return render(request, 'articles/list.html', {
-        'articles': articles,
+        'stocks': stocks,
+        'services': services,
         'search': search,
         'categorie': categorie,
         'stock_bas': stock_bas,
+        'onglet': onglet,
         'categories': Categorie.objects.filter(actif=True),
     })
 
 
+# ── ArticleStock ─────────────────────────────────────────────────────────────
+
 @login_required
-def article_detail(request, pk):
-    article = get_object_or_404(Article, pk=pk)
+def stock_detail(request, pk):
+    article = get_object_or_404(ArticleStock, pk=pk)
     type_mouvement = request.GET.get('type_mouvement', '')
     date_debut = request.GET.get('date_debut', '')
     date_fin = request.GET.get('date_fin', '')
     limite = request.GET.get('limite', '50')
 
     mouvements = get_mouvements_filtres(article, type_mouvement, date_debut, date_fin, limite)
-
-    # 30 derniers mouvements pour le graphe — ordre chronologique
     mouvements_qs = list(article.mouvements.all().order_by('created_at')[:30])
 
-    # Sérialisation JSON pour Chart.js
     graphe_labels = json.dumps([
         timezone.localtime(m.created_at).strftime('%d/%m %H:%M')
         for m in mouvements_qs
     ])
     graphe_data = json.dumps([float(m.stock_apres) for m in mouvements_qs])
 
-    return render(request, 'articles/detail.html', {
+    return render(request, 'articles/stock_detail.html', {
         'article': article,
         'mouvements': mouvements,
         'mouvements_graphe': mouvements_qs,
@@ -87,22 +91,49 @@ def article_detail(request, pk):
 
 
 @login_required
+def stock_create(request):
+    if request.method == 'POST':
+        form = ArticleStockForm(request.POST)
+        if form.is_valid():
+            article = form.save()
+            messages.success(request, f'Article {article.designation} créé.')
+            return redirect('articles:stock_detail', pk=article.pk)
+    else:
+        form = ArticleStockForm()
+    return render(request, 'articles/stock_form.html', {
+        'form': form,
+        'titre': 'Nouvel article stock',
+    })
+
+
+@login_required
+def stock_update(request, pk):
+    article = get_object_or_404(ArticleStock, pk=pk)
+    if request.method == 'POST':
+        form = ArticleStockForm(request.POST, instance=article)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Article {article.designation} modifié.')
+            return redirect('articles:stock_detail', pk=article.pk)
+    else:
+        form = ArticleStockForm(instance=article)
+    return render(request, 'articles/stock_form.html', {
+        'form': form,
+        'titre': f'Modifier {article.designation}',
+        'article': article,
+    })
+
+
+@login_required
 def mouvements_csv(request, pk):
-    article = get_object_or_404(Article, pk=pk)
+    article = get_object_or_404(ArticleStock, pk=pk)
     type_mouvement = request.GET.get('type_mouvement', '')
     date_debut = request.GET.get('date_debut', '')
     date_fin = request.GET.get('date_fin', '')
     limite = request.GET.get('limite', '50')
 
     mouvements = get_mouvements_filtres(article, type_mouvement, date_debut, date_fin, limite)
-
-    type_label = {
-        'entree': 'entrees',
-        'sortie': 'sorties',
-        'inventaire': 'inventaire',
-        '': 'tous_mouvements'
-    }.get(type_mouvement, 'mouvements')
-
+    type_label = {'entree': 'entrees', 'sortie': 'sorties', 'inventaire': 'inventaire', '': 'tous_mouvements'}.get(type_mouvement, 'mouvements')
     date_export = timezone.now().strftime('%Y%m%d_%H%M')
     filename = f"stock_{article.reference}_{type_label}_{date_export}.csv"
 
@@ -111,81 +142,26 @@ def mouvements_csv(request, pk):
     response.write('\ufeff')
 
     writer = csv.writer(response, delimiter=';')
-
-    writer.writerow([
-        'Date',
-        'Reference',
-        'Designation',
-        'Categorie',
-        'Type',
-        'Quantite',
-        'Unite',
-        'Prix achat (XPF)',
-        'Valeur (XPF)',
-        'Stock avant',
-        'Stock apres',
-        'Motif',
-        'Saisi par',
-    ])
+    writer.writerow(['Date', 'Reference', 'Designation', 'Categorie', 'Type', 'Quantite', 'Unite', 'Prix achat (XPF)', 'Valeur (XPF)', 'Stock avant', 'Stock apres', 'Motif', 'Saisi par'])
 
     for m in mouvements:
         date_locale = timezone.localtime(m.created_at)
         writer.writerow([
             date_locale.strftime('%d/%m/%Y %H:%M'),
-            article.reference,
-            article.designation,
-            article.categorie.libelle,
+            article.reference, article.designation, article.categorie.libelle,
             m.get_type_display(),
-            str(m.quantite).replace('.', ','),
-            article.unite.abreviation,
+            str(m.quantite).replace('.', ','), article.unite.abreviation,
             str(m.prix_achat).replace('.', ',') if m.prix_achat else '',
             str(m.valeur).replace('.', ','),
-            str(m.stock_avant).replace('.', ','),
-            str(m.stock_apres).replace('.', ','),
-            m.motif or '',
-            m.user.get_full_name() or m.user.username,
+            str(m.stock_avant).replace('.', ','), str(m.stock_apres).replace('.', ','),
+            m.motif or '', m.user.get_full_name() or m.user.username,
         ])
-
     return response
 
 
 @login_required
-def article_create(request):
-    if request.method == 'POST':
-        form = ArticleForm(request.POST)
-        if form.is_valid():
-            article = form.save()
-            messages.success(request, f'Article {article.designation} créé avec succès.')
-            return redirect('articles:detail', pk=article.pk)
-    else:
-        form = ArticleForm()
-    return render(request, 'articles/form.html', {
-        'form': form,
-        'titre': 'Nouvel article',
-    })
-
-
-@login_required
-def article_update(request, pk):
-    article = get_object_or_404(Article, pk=pk)
-    if request.method == 'POST':
-        form = ArticleForm(request.POST, instance=article)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f'Article {article.designation} modifié avec succès.')
-            return redirect('articles:detail', pk=article.pk)
-    else:
-        form = ArticleForm(instance=article)
-    return render(request, 'articles/form.html', {
-        'form': form,
-        'titre': f'Modifier {article.designation}',
-        'article': article,
-    })
-
-
-@login_required
 def mouvement_create(request, pk):
-    article = get_object_or_404(Article, pk=pk)
+    article = get_object_or_404(ArticleStock, pk=pk)
     if request.method == 'POST':
         form = MouvementStockForm(request.POST)
         if form.is_valid():
@@ -197,20 +173,17 @@ def mouvement_create(request, pk):
             if mouvement.type == 'entree':
                 if mouvement.prix_achat:
                     mouvement.valeur = mouvement.quantite * mouvement.prix_achat
-                    valeur_stock_avant = article.valeur_stock
-                    nouvelle_valeur = valeur_stock_avant + mouvement.valeur
+                    nouvelle_valeur = article.valeur_stock + mouvement.valeur
                     nouveau_stock = article.stock_actuel + mouvement.quantite
                     if nouveau_stock > 0:
                         article.pru_moyen = nouvelle_valeur / nouveau_stock
                     article.valeur_stock = nouvelle_valeur
                 article.stock_actuel += mouvement.quantite
-
             elif mouvement.type == 'sortie':
                 mouvement.prix_achat = article.pru_moyen
                 mouvement.valeur = mouvement.quantite * mouvement.prix_achat
                 article.valeur_stock -= mouvement.valeur
                 article.stock_actuel -= mouvement.quantite
-
             elif mouvement.type == 'inventaire':
                 article.stock_actuel = mouvement.quantite
                 if article.pru_moyen:
@@ -220,7 +193,7 @@ def mouvement_create(request, pk):
             article.save()
             mouvement.save()
             messages.success(request, 'Mouvement de stock enregistré.')
-            return redirect('articles:detail', pk=article.pk)
+            return redirect('articles:stock_detail', pk=article.pk)
     else:
         form = MouvementStockForm()
     return render(request, 'articles/mouvement_form.html', {
@@ -236,15 +209,15 @@ def mouvement_update(request, pk):
     article = mouvement.article
 
     if not (request.user.is_staff or request.user.role == 'direction'):
-        messages.error(request, 'Accès refusé — modification réservée aux administrateurs.')
-        return redirect('articles:detail', pk=article.pk)
+        messages.error(request, 'Accès refusé.')
+        return redirect('articles:stock_detail', pk=article.pk)
 
     if request.method == 'POST':
         form = MouvementStockForm(request.POST, instance=mouvement)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Mouvement modifié avec succès.')
-            return redirect('articles:detail', pk=article.pk)
+            messages.success(request, 'Mouvement modifié.')
+            return redirect('articles:stock_detail', pk=article.pk)
     else:
         form = MouvementStockForm(instance=mouvement)
 
@@ -256,19 +229,59 @@ def mouvement_update(request, pk):
     })
 
 
+# ── ArticleService ────────────────────────────────────────────────────────────
+
+@login_required
+def service_detail(request, pk):
+    article = get_object_or_404(ArticleService, pk=pk)
+    return render(request, 'articles/service_detail.html', {'article': article})
+
+
+@login_required
+def service_create(request):
+    if request.method == 'POST':
+        form = ArticleServiceForm(request.POST)
+        if form.is_valid():
+            article = form.save()
+            messages.success(request, f'Service {article.designation} créé.')
+            return redirect('articles:service_detail', pk=article.pk)
+    else:
+        form = ArticleServiceForm()
+    return render(request, 'articles/service_form.html', {
+        'form': form,
+        'titre': 'Nouveau service',
+    })
+
+
+@login_required
+def service_update(request, pk):
+    article = get_object_or_404(ArticleService, pk=pk)
+    if request.method == 'POST':
+        form = ArticleServiceForm(request.POST, instance=article)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Service {article.designation} modifié.')
+            return redirect('articles:service_detail', pk=article.pk)
+    else:
+        form = ArticleServiceForm(instance=article)
+    return render(request, 'articles/service_form.html', {
+        'form': form,
+        'titre': f'Modifier {article.designation}',
+        'article': article,
+    })
+
+
+# ── Fournisseurs ─────────────────────────────────────────────────────────────
+
 @login_required
 def fournisseur_list(request):
     search = request.GET.get('q', '')
     fournisseurs = Fournisseur.objects.all()
     if search:
         fournisseurs = fournisseurs.filter(
-            Q(raison_sociale__icontains=search) |
-            Q(email__icontains=search)
+            Q(raison_sociale__icontains=search) | Q(email__icontains=search)
         )
-    return render(request, 'articles/fournisseur_list.html', {
-        'fournisseurs': fournisseurs,
-        'search': search,
-    })
+    return render(request, 'articles/fournisseur_list.html', {'fournisseurs': fournisseurs, 'search': search})
 
 
 @login_required
@@ -277,14 +290,11 @@ def fournisseur_create(request):
         form = FournisseurForm(request.POST)
         if form.is_valid():
             fournisseur = form.save()
-            messages.success(request, f'Fournisseur {fournisseur.raison_sociale} créé avec succès.')
+            messages.success(request, f'Fournisseur {fournisseur.raison_sociale} créé.')
             return redirect('articles:fournisseur_list')
     else:
         form = FournisseurForm()
-    return render(request, 'articles/fournisseur_form.html', {
-        'form': form,
-        'titre': 'Nouveau fournisseur',
-    })
+    return render(request, 'articles/fournisseur_form.html', {'form': form, 'titre': 'Nouveau fournisseur'})
 
 
 @login_required
@@ -294,7 +304,7 @@ def fournisseur_update(request, pk):
         form = FournisseurForm(request.POST, instance=fournisseur)
         if form.is_valid():
             form.save()
-            messages.success(request, f'Fournisseur {fournisseur.raison_sociale} modifié avec succès.')
+            messages.success(request, f'Fournisseur {fournisseur.raison_sociale} modifié.')
             return redirect('articles:fournisseur_list')
     else:
         form = FournisseurForm(instance=fournisseur)

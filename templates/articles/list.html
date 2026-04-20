@@ -1,26 +1,34 @@
 {% extends 'base.html' %}
-{% block title %}Articles & Stock — EIP{% endblock %}
+{% block title %}Articles & Services — EIP{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item active">Articles & Stock</li>
+<li class="breadcrumb-item active">Articles & Services</li>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-3">
-    <h4 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>Articles & Stock</h4>
+    <h4 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>Articles & Services</h4>
     <div class="d-flex gap-2">
         <a href="{% url 'articles:fournisseur_list' %}" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-truck me-1"></i>Fournisseurs
         </a>
-        <a href="{% url 'articles:create' %}" class="btn btn-sm btn-primary">
-            <i class="bi bi-plus-lg me-1"></i>Nouvel article
+        {% if onglet == 'service' %}
+        <a href="{% url 'articles:service_create' %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Nouveau service
         </a>
+        {% else %}
+        <a href="{% url 'articles:stock_create' %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Nouvel article stock
+        </a>
+        {% endif %}
     </div>
 </div>
 
+<!-- Filtres -->
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
         <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="hidden" name="onglet" value="{{ onglet }}">
             <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="Référence ou désignation..." style="min-width:200px;">
             <select name="categorie" class="form-select form-select-sm" style="width:auto;">
                 <option value="">Toutes catégories</option>
@@ -28,18 +36,40 @@
                 <option value="{{ cat.pk }}" {% if categorie == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.libelle }}</option>
                 {% endfor %}
             </select>
+            {% if onglet != 'service' %}
             <div class="form-check mb-0 ms-1">
                 <input type="checkbox" class="form-check-input" name="stock_bas" value="1" id="stock_bas" {% if stock_bas == '1' %}checked{% endif %}>
                 <label class="form-check-label small" for="stock_bas">Stock bas uniquement</label>
             </div>
+            {% endif %}
             <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-search"></i></button>
             {% if search or categorie or stock_bas %}
-            <a href="{% url 'articles:list' %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></a>
+            <a href="{% url 'articles:list' %}?onglet={{ onglet }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></a>
             {% endif %}
         </form>
     </div>
 </div>
 
+<!-- Onglets -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if onglet != 'service' %}active{% endif %}"
+           href="?onglet=stock{% if search %}&q={{ search }}{% endif %}{% if categorie %}&categorie={{ categorie }}{% endif %}">
+            <i class="bi bi-box me-1"></i>Stock
+            <span class="badge bg-secondary ms-1">{{ stocks|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if onglet == 'service' %}active{% endif %}"
+           href="?onglet=service{% if search %}&q={{ search }}{% endif %}{% if categorie %}&categorie={{ categorie }}{% endif %}">
+            <i class="bi bi-gear me-1"></i>Services
+            <span class="badge bg-secondary ms-1">{{ services|length }}</span>
+        </a>
+    </li>
+</ul>
+
+{% if onglet != 'service' %}
+<!-- Articles stock -->
 <div class="card border-0 shadow-sm">
     <div class="table-scroll">
         <table class="table table-hover table-sm mb-0">
@@ -55,8 +85,8 @@
                 </tr>
             </thead>
             <tbody>
-                {% for article in articles %}
-                <tr style="cursor:pointer;" onclick="window.location='{% url 'articles:detail' article.pk %}'">
+                {% for article in stocks %}
+                <tr style="cursor:pointer;" onclick="window.location='{% url 'articles:stock_detail' article.pk %}'">
                     <td class="eip-td fw-semibold">{{ article.reference }}</td>
                     <td class="eip-td">{{ article.designation }}</td>
                     <td class="eip-td">{{ article.categorie.libelle }}</td>
@@ -75,18 +105,55 @@
                         <a href="{% url 'articles:mouvement' article.pk %}" class="btn btn-sm btn-outline-primary" title="Mouvement de stock">
                             <i class="bi bi-arrow-left-right"></i>
                         </a>
-                        <a href="{% url 'articles:update' article.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                        <a href="{% url 'articles:stock_update' article.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
                             <i class="bi bi-pencil"></i>
                         </a>
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="7" class="text-center text-muted py-3 eip-td">Aucun article trouvé.</td>
-                </tr>
+                <tr><td colspan="7" class="text-center text-muted py-3 eip-td">Aucun article stock trouvé.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+{% else %}
+<!-- Articles service -->
+<div class="card border-0 shadow-sm">
+    <div class="table-scroll">
+        <table class="table table-hover table-sm mb-0">
+            <thead>
+                <tr>
+                    <th class="eip-th">Référence</th>
+                    <th class="eip-th">Désignation</th>
+                    <th class="eip-th">Catégorie</th>
+                    <th class="eip-th">Unité</th>
+                    <th class="eip-th">Prix vente HT</th>
+                    <th class="eip-th"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for article in services %}
+                <tr style="cursor:pointer;" onclick="window.location='{% url 'articles:service_detail' article.pk %}'">
+                    <td class="eip-td fw-semibold">{{ article.reference }}</td>
+                    <td class="eip-td">{{ article.designation }}</td>
+                    <td class="eip-td">{{ article.categorie.libelle }}</td>
+                    <td class="eip-td">{{ article.unite.abreviation }}</td>
+                    <td class="eip-td">{{ article.prix_vente_ht }} XPF</td>
+                    <td class="eip-td text-end" onclick="event.stopPropagation()">
+                        <a href="{% url 'articles:service_update' article.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-3 eip-td">Aucun service trouvé.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}

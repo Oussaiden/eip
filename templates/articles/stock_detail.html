@@ -2,7 +2,7 @@
 {% block title %}{{ article.designation }} — EIP{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'articles:list' %}">Articles & Stock</a></li>
+<li class="breadcrumb-item"><a href="{% url 'articles:list' %}">Articles & Services</a></li>
 <li class="breadcrumb-item active">{{ article.designation }}</li>
 {% endblock %}
 
@@ -11,9 +11,8 @@
     <h4 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>{{ article.designation }}</h4>
 </div>
 
-{% if article.type_article == 'stock' %}
 <div class="row g-3 mb-3">
-    <div class="col-sm-3">
+    <div class="col-sm-2">
         <div class="card border-0 shadow-sm">
             <div class="card-body d-flex align-items-center gap-3 py-2">
                 <div style="width:36px;height:36px;border-radius:10px;{% if article.stock_bas %}background:#fee2e2;{% else %}background:#e8f5e9;{% endif %}display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -28,7 +27,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-3">
+    <div class="col-sm-2">
         <div class="card border-0 shadow-sm">
             <div class="card-body d-flex align-items-center gap-3 py-2">
                 <div style="width:36px;height:36px;border-radius:10px;background:#fff3e0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -41,7 +40,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-3">
+    <div class="col-sm-2">
         <div class="card border-0 shadow-sm">
             <div class="card-body d-flex align-items-center gap-3 py-2">
                 <div style="width:36px;height:36px;border-radius:10px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -54,7 +53,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-3">
+    <div class="col-sm-2">
         <div class="card border-0 shadow-sm">
             <div class="card-body d-flex align-items-center gap-3 py-2">
                 <div style="width:36px;height:36px;border-radius:10px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -67,8 +66,35 @@
             </div>
         </div>
     </div>
+    <div class="col-sm-2">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#f3e8ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-currency-exchange" style="font-size:16px;color:#7c3aed;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Prix de vente HT</div>
+                    <div class="fw-bold">{{ article.prix_vente_ht|floatformat:"-2" }} XPF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-2">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;{% if article.taux_marge > 0 %}background:#e8f5e9;{% elif article.taux_marge < 0 %}background:#fee2e2;{% else %}background:#f8f9fa;{% endif %}display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-percent" style="font-size:16px;{% if article.taux_marge > 0 %}color:#198754;{% elif article.taux_marge < 0 %}color:#dc3545;{% else %}color:#6c757d;{% endif %}"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Taux de marge</div>
+                    <div class="fw-bold {% if article.taux_marge > 0 %}text-success{% elif article.taux_marge < 0 %}text-danger{% endif %}">
+                        {{ article.taux_marge|floatformat:"1" }} %
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-{% endif %}
 
 <div class="card border-0 shadow-sm">
     <div class="eip-tabs">
@@ -79,12 +105,10 @@
             <i class="bi bi-truck"></i> Fournisseurs
             <span class="tab-badge">{{ article.fournisseurs.count }}</span>
         </a>
-        {% if article.type_article == 'stock' %}
         <a href="?onglet=mouvements" class="eip-tab {% if request.GET.onglet == 'mouvements' %}active{% endif %}">
             <i class="bi bi-arrow-left-right"></i> Mouvements
             <span class="tab-badge">{{ article.mouvements.count }}</span>
         </a>
-        {% endif %}
     </div>
 
     <div class="card-body p-0">
@@ -98,12 +122,10 @@
                         <div class="card-header bg-transparent fw-semibold border-0 pt-3 d-flex justify-content-between align-items-center">
                             <span style="font-size:13px;"><i class="bi bi-info-circle me-2 text-primary"></i>Informations</span>
                             <div class="d-flex gap-1">
-                                {% if article.type_article == 'stock' %}
                                 <a href="{% url 'articles:mouvement' article.pk %}" class="btn btn-sm btn-outline-primary" title="Saisir un mouvement">
                                     <i class="bi bi-plus-slash-minus"></i>
                                 </a>
-                                {% endif %}
-                                <a href="{% url 'articles:update' article.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                                <a href="{% url 'articles:stock_update' article.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                             </div>
@@ -126,7 +148,6 @@
                                     <td class="text-muted">Unité</td>
                                     <td>{{ article.unite.libelle }} ({{ article.unite.abreviation }})</td>
                                 </tr>
-                                {% if article.type_article == 'stock' %}
                                 <tr>
                                     <td class="text-muted">Stock actuel</td>
                                     <td class="fw-semibold {% if article.stock_bas %}text-danger{% endif %}">
@@ -139,13 +160,27 @@
                                 </tr>
                                 <tr>
                                     <td class="text-muted">PRU moyen</td>
-                                    <td>{{ article.pru_moyen|floatformat:"-2" }} XPF</td>
+                                    <td class="fw-semibold">{{ article.pru_moyen|floatformat:"-2" }} XPF</td>
                                 </tr>
                                 <tr>
                                     <td class="text-muted">Valeur stock</td>
                                     <td class="fw-semibold">{{ article.valeur_stock|floatformat:"-2" }} XPF</td>
                                 </tr>
-                                {% endif %}
+                                <tr>
+                                    <td class="text-muted">Prix de vente HT</td>
+                                    <td class="fw-semibold">{{ article.prix_vente_ht|floatformat:"-2" }} XPF</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Taux de marge</td>
+                                    <td class="fw-semibold {% if article.taux_marge > 0 %}text-success{% elif article.taux_marge < 0 %}text-danger{% endif %}">
+                                        {{ article.taux_marge|floatformat:"1" }} %
+                                        {% if article.pru_moyen and article.prix_vente_ht %}
+                                        <span class="text-muted fw-normal" style="font-size:11px;">
+                                            (gain : {{ article.prix_vente_ht|floatformat:"-2" }} − {{ article.pru_moyen|floatformat:"-2" }} XPF)
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
                                 <tr>
                                     <td class="text-muted">Statut</td>
                                     <td>
@@ -167,7 +202,6 @@
                     </div>
                 </div>
 
-                {% if article.type_article == 'stock' %}
                 <div class="col-lg-6">
                     <div class="card border-0 bg-body-secondary h-100">
                         <div class="card-header bg-transparent fw-semibold border-0 pt-3">
@@ -185,7 +219,6 @@
                         </div>
                     </div>
                 </div>
-                {% endif %}
 
             </div>
         </div>

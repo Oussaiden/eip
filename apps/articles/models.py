@@ -25,30 +25,30 @@ class Fournisseur(models.Model):
         return self.raison_sociale
 
 
-class Article(models.Model):
+class ArticleStock(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     reference = models.CharField(max_length=100, unique=True)
     designation = models.CharField(max_length=255)
     categorie = models.ForeignKey(
         'parametres.Categorie',
         on_delete=models.PROTECT,
-        related_name='articles'
+        related_name='articles_stock'
     )
     unite = models.ForeignKey(
         'parametres.Unite',
         on_delete=models.PROTECT,
-        related_name='articles'
+        related_name='articles_stock'
     )
     sections = models.ManyToManyField(
         'parametres.Section',
         blank=True,
-        related_name='articles',
+        related_name='articles_stock',
         verbose_name='Sections'
     )
     tgc_achat = models.ForeignKey(
         'parametres.TGC',
         on_delete=models.PROTECT,
-        related_name='articles_achat',
+        related_name='articles_stock_achat',
         null=True,
         blank=True,
         verbose_name='TGC achat'
@@ -56,7 +56,7 @@ class Article(models.Model):
     tgc_vente = models.ForeignKey(
         'parametres.TGC',
         on_delete=models.PROTECT,
-        related_name='articles_vente',
+        related_name='articles_stock_vente',
         null=True,
         blank=True,
         verbose_name='TGC vente'
@@ -77,8 +77,8 @@ class Article(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = 'Article'
-        verbose_name_plural = 'Articles'
+        verbose_name = 'Article stock'
+        verbose_name_plural = 'Articles stock'
         ordering = ['categorie__libelle', 'designation']
 
     def __str__(self):
@@ -95,10 +95,74 @@ class Article(models.Model):
         return 0
 
 
+class ArticleService(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reference = models.CharField(max_length=100, unique=True)
+    designation = models.CharField(max_length=255)
+    categorie = models.ForeignKey(
+        'parametres.Categorie',
+        on_delete=models.PROTECT,
+        related_name='articles_service'
+    )
+    unite = models.ForeignKey(
+        'parametres.Unite',
+        on_delete=models.PROTECT,
+        related_name='articles_service'
+    )
+    sections = models.ManyToManyField(
+        'parametres.Section',
+        blank=True,
+        related_name='articles_service',
+        verbose_name='Sections'
+    )
+    tgc_vente = models.ForeignKey(
+        'parametres.TGC',
+        on_delete=models.PROTECT,
+        related_name='articles_service_vente',
+        null=True,
+        blank=True,
+        verbose_name='TGC vente'
+    )
+    prix_vente_ht = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Prix de vente HT'
+    )
+    prix_revient = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Prix de revient'
+    )
+    notes = models.TextField(blank=True)
+    actif = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Article service'
+        verbose_name_plural = 'Articles service'
+        ordering = ['categorie__libelle', 'designation']
+
+    def __str__(self):
+        return f"{self.reference} — {self.designation}"
+
+    @property
+    def gain(self):
+        return round(self.prix_vente_ht - self.prix_revient, 2)
+
+    @property
+    def taux_marge(self):
+        if self.prix_vente_ht and self.prix_vente_ht > 0:
+            return round((self.prix_vente_ht - self.prix_revient) / self.prix_vente_ht * 100, 2)
+        return 0
+
+
 class ArticleFournisseur(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     article = models.ForeignKey(
-        Article,
+        ArticleStock,
         on_delete=models.CASCADE,
         related_name='fournisseurs'
     )
@@ -131,7 +195,7 @@ class MouvementStock(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     article = models.ForeignKey(
-        Article,
+        ArticleStock,
         on_delete=models.PROTECT,
         related_name='mouvements'
     )

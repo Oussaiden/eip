@@ -28,7 +28,10 @@ class Devis(models.Model):
     date = models.DateField(default=timezone.now)
     date_validite = models.DateField(null=True, blank=True)
     statut = models.CharField(max_length=20, choices=STATUTS, default='brouillon')
+    urgent = models.BooleanField(default=False, verbose_name='Urgent')
     description = models.TextField(blank=True)
+    format = models.CharField(max_length=100, blank=True, verbose_name='Format')
+    papier = models.CharField(max_length=200, blank=True, verbose_name='Papier')
     notes = models.TextField(blank=True)
     remise_globale = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     ht = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -88,6 +91,7 @@ class VarianteDevis(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     devis = models.ForeignKey(Devis, on_delete=models.CASCADE, related_name='variantes')
     libelle = models.CharField(max_length=100)
+    quantite = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Quantité')
     statut = models.CharField(max_length=20, choices=STATUTS, default='brouillon')
     remise_globale = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     ht = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -108,7 +112,7 @@ class VarianteDevis(models.Model):
         return f"{self.devis.numero} — {self.libelle}"
 
     def recalculer(self):
-        lignes = self.lignes.filter(type__in=['article', 'libre'])
+        lignes = self.lignes.filter(type__in=['article', 'service', 'libre'])
         ht_avant_remise = sum(l.ht for l in lignes) or Decimal('0')
         self.ht = ht_avant_remise * (1 - self.remise_globale / 100)
         self.tgc = sum(l.tgc for l in lignes) or Decimal('0')
@@ -120,7 +124,9 @@ class VarianteDevis(models.Model):
 
 class LigneDevis(models.Model):
     TYPES = [
-        ('article', 'Article catalogue'),
+        ('article', 'Article stock'),
+        ('service', 'Service'),
+        ('machine', 'Machine'),
         ('libre', 'Ligne libre'),
         ('texte', 'Texte'),
     ]
@@ -136,7 +142,9 @@ class LigneDevis(models.Model):
         related_name='lignes_devis',
         verbose_name='Section'
     )
-    article = models.ForeignKey('articles.Article', on_delete=models.PROTECT, null=True, blank=True, related_name='lignes_devis')
+    article = models.ForeignKey('articles.ArticleStock', on_delete=models.PROTECT, null=True, blank=True, related_name='lignes_devis')
+    article_service = models.ForeignKey('articles.ArticleService', on_delete=models.PROTECT, null=True, blank=True, related_name='lignes_devis')
+    machine = models.ForeignKey('planning.Machine', on_delete=models.PROTECT, null=True, blank=True, related_name='lignes_devis')
     designation = models.CharField(max_length=255, blank=True)
     qte = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     pu = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -158,7 +166,10 @@ class LigneDevis(models.Model):
         return f"{self.designation} — {self.variante}"
 
     def save(self, *args, **kwargs):
-        if self.type in ['article', 'libre']:
+        if self.type == 'machine' and self.machine and self.qte > 0:
+            self.pu = self.machine.calculer_pu(self.qte)
+            self.pru = self.machine.calculer_pu(self.qte)
+        if self.type in ['article', 'service', 'machine', 'libre']:
             base = self.qte * self.pu
             self.ht = base * (1 - self.remise / 100)
             self.tgc = self.ht * self.taux_tgc / 100
@@ -250,7 +261,8 @@ class Dossier(models.Model):
 class LigneDossier(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     dossier = models.ForeignKey(Dossier, on_delete=models.CASCADE, related_name='lignes')
-    article = models.ForeignKey('articles.Article', on_delete=models.PROTECT, null=True, blank=True, related_name='lignes_dossiers')
+    article = models.ForeignKey('articles.ArticleStock', on_delete=models.PROTECT, null=True, blank=True, related_name='lignes_dossiers')
+    article_service = models.ForeignKey('articles.ArticleService', on_delete=models.PROTECT, null=True, blank=True, related_name='lignes_dossiers')
     type = models.ForeignKey('parametres.TypeLigneDossier', on_delete=models.PROTECT, related_name='lignes_dossier')
     designation = models.CharField(max_length=255)
     qte_prevue = models.DecimalField(max_digits=10, decimal_places=2)

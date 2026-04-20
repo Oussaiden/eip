@@ -26,7 +26,8 @@ urlpatterns = [
     path('lignes/<uuid:pk>/supprimer/', views.ligne_delete, name='ligne_delete'),
 
     # AJAX
-    path('api/article/<uuid:pk>/', views.article_info, name='article_info'),
+    path('api/article-stock/<uuid:pk>/', views.article_stock_info, name='article_stock_info'),
+    path('api/article-service/<uuid:pk>/', views.article_service_info, name='article_service_info'),
     path('api/section/<uuid:section_pk>/articles/', views.articles_par_section, name='articles_par_section'),
 
     # Dossiers FAB

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Article, Fournisseur, ArticleFournisseur, MouvementStock
+from .models import ArticleStock, ArticleService, Fournisseur, ArticleFournisseur, MouvementStock
 
 
 class ArticleFournisseurInline(admin.TabularInline):
@@ -7,18 +7,26 @@ class ArticleFournisseurInline(admin.TabularInline):
     extra = 1
 
 
-@admin.register(Article)
-class ArticleAdmin(admin.ModelAdmin):
+@admin.register(ArticleStock)
+class ArticleStockAdmin(admin.ModelAdmin):
+    inlines = [ArticleFournisseurInline]
     list_display = ['reference', 'designation', 'categorie', 'unite', 'stock_actuel', 'seuil_minimum', 'actif']
     list_filter = ['categorie', 'sections', 'actif']
     search_fields = ['reference', 'designation']
     filter_horizontal = ['sections']
-    inlines = [ArticleFournisseurInline]
 
     def stock_bas(self, obj):
         return obj.stock_bas
     stock_bas.boolean = True
     stock_bas.short_description = 'Stock bas'
+
+
+@admin.register(ArticleService)
+class ArticleServiceAdmin(admin.ModelAdmin):
+    list_display = ['reference', 'designation', 'categorie', 'unite', 'prix_vente_ht', 'actif']
+    list_filter = ['categorie', 'sections', 'actif']
+    search_fields = ['reference', 'designation']
+    filter_horizontal = ['sections']
 
 
 @admin.register(Fournisseur)

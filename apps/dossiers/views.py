@@ -9,7 +9,7 @@ from datetime import timedelta
 from decimal import Decimal
 from .models import Devis, VarianteDevis, LigneDevis, Dossier, LigneDossier
 from .forms import DevisForm, VarianteDevisForm, LigneDevisForm, DossierForm
-from apps.articles.models import Article
+from apps.articles.models import ArticleStock, ArticleService
 from apps.parametres.models import Parametre, Section
 
 
@@ -202,6 +202,7 @@ def devis_dupliquer(request, pk):
                     type=ligne.type,
                     section=ligne.section,
                     article=ligne.article,
+                    article_service=ligne.article_service,
                     designation=ligne.designation,
                     qte=ligne.qte,
                     pu=ligne.pu,
@@ -295,6 +296,7 @@ def variante_dupliquer(request, pk):
                 type=ligne.type,
                 section=ligne.section,
                 article=ligne.article,
+                article_service=ligne.article_service,
                 designation=ligne.designation,
                 qte=ligne.qte,
                 pu=ligne.pu,
@@ -344,6 +346,8 @@ def ligne_create(request, variante_pk):
             ligne.ordre = variante.lignes.count()
             if ligne.article and not ligne.designation:
                 ligne.designation = ligne.article.designation
+            elif ligne.article_service and not ligne.designation:
+                ligne.designation = ligne.article_service.designation
             ligne.save()
             messages.success(request, 'Ligne ajoutée.')
             return redirect('dossiers:detail', pk=devis.pk)
@@ -368,6 +372,8 @@ def ligne_update(request, pk):
             l = form.save(commit=False)
             if l.article and not l.designation:
                 l.designation = l.article.designation
+            elif l.article_service and not l.designation:
+                l.designation = l.article_service.designation
             l.save()
             messages.success(request, 'Ligne modifiée.')
             return redirect('dossiers:detail', pk=devis.pk)
@@ -394,8 +400,8 @@ def ligne_delete(request, pk):
 
 
 @login_required
-def article_info(request, pk):
-    article = get_object_or_404(Article, pk=pk, actif=True)
+def article_stock_info(request, pk):
+    article = get_object_or_404(ArticleStock, pk=pk, actif=True)
     return JsonResponse({
         'designation': article.designation,
         'pu': str(article.prix_vente_ht),
@@ -407,10 +413,25 @@ def article_info(request, pk):
 
 
 @login_required
-def articles_par_section(request, section_pk):
-    articles = Article.objects.filter(actif=True, sections=section_pk).order_by('designation')
+def article_service_info(request, pk):
+    article = get_object_or_404(ArticleService, pk=pk, actif=True)
     return JsonResponse({
-        'articles': [{'id': str(a.pk), 'text': f"{a.reference} — {a.designation}"} for a in articles]
+        'designation': article.designation,
+        'pu': str(article.prix_vente_ht),
+        'pru': '0',
+        'taux_tgc': str(article.tgc_vente.taux) if article.tgc_vente else '0',
+        'tgc_id': str(article.tgc_vente.id) if article.tgc_vente else '',
+        'unite': article.unite.abreviation,
+    })
+
+
+@login_required
+def articles_par_section(request, section_pk):
+    stocks = ArticleStock.objects.filter(actif=True, sections=section_pk).order_by('designation')
+    services = ArticleService.objects.filter(actif=True, sections=section_pk).order_by('designation')
+    return JsonResponse({
+        'stocks': [{'id': str(a.pk), 'text': f"{a.reference} — {a.designation}"} for a in stocks],
+        'services': [{'id': str(a.pk), 'text': f"{a.reference} — {a.designation}"} for a in services],
     })
 
 

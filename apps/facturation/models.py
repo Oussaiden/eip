@@ -46,7 +46,7 @@ class Facture(models.Model):
 class LigneFacture(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     facture = models.ForeignKey(Facture, on_delete=models.CASCADE, related_name='lignes')
-    article = models.ForeignKey('articles.Article', on_delete=models.PROTECT, null=True, blank=True, related_name='lignes_factures')
+    article = models.ForeignKey('articles.ArticleStock', on_delete=models.PROTECT, null=True, blank=True, related_name='lignes_factures')
     designation = models.CharField(max_length=255)
     qte = models.DecimalField(max_digits=10, decimal_places=3)
     pu = models.DecimalField(max_digits=10, decimal_places=2)

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Machines — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Machines</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-printer me-2"></i>Machines</h4>
+    <a href="{% url 'atelier:machine_create' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Nouvelle machine
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover table-sm mb-0" style="font-size:13px;">
+            <thead>
+                <tr>
+                    <th class="eip-th">Référence</th>
+                    <th class="eip-th">Nom</th>
+                    <th class="eip-th">Type</th>
+                    <th class="eip-th">Couleurs</th>
+                    <th class="eip-th">Vitesse max</th>
+                    <th class="eip-th">Format max</th>
+                    <th class="eip-th text-end">Coût/h</th>
+                    <th class="eip-th text-end">CPM</th>
+                    <th class="eip-th"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in machines %}
+                <tr>
+                    <td class="eip-td fw-semibold">
+                        <a href="{% url 'atelier:machine_detail' m.pk %}" class="text-decoration-none">{{ m.reference }}</a>
+                    </td>
+                    <td class="eip-td">{{ m.nom }}</td>
+                    <td class="eip-td">{{ m.type.libelle|default:"—" }}</td>
+                    <td class="eip-td text-center">{{ m.nb_couleurs }}</td>
+                    <td class="eip-td">{{ m.vitesse_max|floatformat:"-1" }} t/min</td>
+                    <td class="eip-td">{{ m.format_max }}</td>
+                    <td class="eip-td text-end fw-semibold">{{ m.cout_heure|floatformat:"-2" }} XPF</td>
+                    <td class="eip-td text-end text-muted">{{ m.cout_pour_mille|floatformat:"-2" }} XPF</td>
+                    <td class="eip-td text-end">
+                        <a href="{% url 'atelier:machine_detail' m.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4 eip-td">
+                        Aucune machine. <a href="{% url 'atelier:machine_create' %}">Créer la première</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

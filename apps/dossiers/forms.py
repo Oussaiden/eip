@@ -2,33 +2,46 @@ from django import forms
 from django.utils import timezone
 from datetime import timedelta
 from .models import Devis, VarianteDevis, LigneDevis, Dossier
-from apps.articles.models import Article
+from apps.articles.models import ArticleStock, ArticleService
 from apps.parametres.models import TGC, Section
 
 
 class DevisForm(forms.ModelForm):
     class Meta:
         model = Devis
-        fields = ['client', 'date', 'date_validite', 'description', 'notes']
+        fields = ['client', 'date', 'date_validite', 'urgent', 'description', 'format', 'papier', 'notes']
         widgets = {
             'client': forms.Select(attrs={'class': 'form-select'}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'date_validite': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4,
-                'placeholder': 'Format, support, couleurs, finition...'}),
+            'urgent': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'description': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Flyer, Carte de visite...'}),
+            'format': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: A4, A5, 10x15 cm...'}),
+            'papier': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Couché brillant 350 grs...'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3,
                 'placeholder': 'Notes internes...'}),
+        }
+        labels = {
+            'description': 'Désignation',
+            'format': 'Format',
+            'papier': 'Papier',
         }
 
 
 class VarianteDevisForm(forms.ModelForm):
     class Meta:
         model = VarianteDevis
-        fields = ['libelle', 'remise_globale']
+        fields = ['libelle', 'quantite', 'remise_globale']
         widgets = {
             'libelle': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ex: 500 ex, 1000 ex, Option A...'
+            }),
+            'quantite': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '1',
+                'min': '0',
+                'placeholder': 'Ex: 500',
             }),
             'remise_globale': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -38,6 +51,7 @@ class VarianteDevisForm(forms.ModelForm):
             }),
         }
         labels = {
+            'quantite': 'Quantité',
             'remise_globale': 'Remise globale (%)',
         }
 
@@ -54,11 +68,12 @@ class LigneDevisForm(forms.ModelForm):
 
     class Meta:
         model = LigneDevis
-        fields = ['section', 'type', 'article', 'designation', 'qte', 'pu', 'pru', 'remise']
+        fields = ['section', 'type', 'article', 'article_service', 'designation', 'qte', 'pu', 'pru', 'remise']
         widgets = {
             'section': forms.Select(attrs={'class': 'form-select', 'id': 'id_section'}),
             'type': forms.Select(attrs={'class': 'form-select', 'id': 'id_type'}),
             'article': forms.Select(attrs={'class': 'form-select', 'id': 'id_article'}),
+            'article_service': forms.Select(attrs={'class': 'form-select', 'id': 'id_article_service'}),
             'designation': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_designation'}),
             'qte': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'id': 'id_qte'}),
             'pu': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'id': 'id_pu'}),
@@ -67,6 +82,7 @@ class LigneDevisForm(forms.ModelForm):
         }
         labels = {
             'section': 'Section',
+            'article_service': 'Service',
             'pru': 'PRU',
             'remise': 'Remise (%)',
         }
@@ -76,9 +92,12 @@ class LigneDevisForm(forms.ModelForm):
         self.fields['section'].queryset = Section.objects.filter(actif=True).order_by('ordre', 'libelle')
         self.fields['section'].empty_label = '— Choisir une section —'
         self.fields['section'].required = False
-        self.fields['article'].queryset = Article.objects.filter(actif=True).order_by('designation')
-        self.fields['article'].empty_label = '— Aucun article —'
+        self.fields['article'].queryset = ArticleStock.objects.filter(actif=True).order_by('designation')
+        self.fields['article'].empty_label = '— Aucun article stock —'
         self.fields['article'].required = False
+        self.fields['article_service'].queryset = ArticleService.objects.filter(actif=True).order_by('designation')
+        self.fields['article_service'].empty_label = '— Aucun service —'
+        self.fields['article_service'].required = False
         self.fields['designation'].required = False
 
         # Pré-remplir tgc_obj depuis taux_tgc de la ligne existante

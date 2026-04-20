@@ -56,7 +56,7 @@ class LigneBonCommande(models.Model):
         related_name='lignes'
     )
     article = models.ForeignKey(
-        'articles.Article',
+        'articles.ArticleStock',
         on_delete=models.PROTECT,
         related_name='lignes_commande'
     )

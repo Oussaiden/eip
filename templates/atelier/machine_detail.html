@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block title %}{{ machine.nom }} — EIP{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'atelier:machine_list' %}">Machines</a></li>
+<li class="breadcrumb-item active">{{ machine.nom }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-printer me-2"></i>{{ machine.nom }}</h4>
+    <a href="{% url 'atelier:machine_update' machine.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-pencil me-1"></i>Modifier
+    </a>
+</div>
+
+{# KPI cards #}
+<div class="row g-3 mb-3">
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-lightning" style="font-size:16px;color:#1a4b8c;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Coût horaire total</div>
+                    <div class="fw-bold">{{ machine.cout_heure|floatformat:"-2" }} XPF/h</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#fff3e0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-speedometer2" style="font-size:16px;color:#fd7e14;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Vitesse max</div>
+                    <div class="fw-bold">{{ machine.vitesse_max|floatformat:"-1" }} t/min</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-graph-up" style="font-size:16px;color:#198754;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Coût / 1 000 impr.</div>
+                    <div class="fw-bold">{{ machine.cout_pour_mille|floatformat:"-2" }} XPF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3 py-2">
+                <div style="width:36px;height:36px;border-radius:10px;background:#fee2e2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-tools" style="font-size:16px;color:#dc3545;"></i>
+                </div>
+                <div>
+                    <div class="text-muted" style="font-size:11px;">Coût fixe / job</div>
+                    <div class="fw-bold">{{ machine.cout_fixe_job|floatformat:"-2" }} XPF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    {# Fiche technique #}
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent fw-semibold border-0 pt-3" style="font-size:13px;">
+                <i class="bi bi-info-circle me-2 text-primary"></i>Caractéristiques
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0" style="font-size:13px;">
+                    <tr><td class="text-muted" style="width:45%">Référence</td><td class="fw-semibold">{{ machine.reference }}</td></tr>
+                    <tr><td class="text-muted">Type</td><td>{{ machine.type.libelle|default:"—" }}</td></tr>
+                    <tr><td class="text-muted">Nb couleurs</td><td>{{ machine.nb_couleurs }}</td></tr>
+                    <tr><td class="text-muted">Format minimum</td><td>{{ machine.format_min }}</td></tr>
+                    <tr><td class="text-muted">Format maximum</td><td>{{ machine.format_max }}</td></tr>
+                    <tr><td class="text-muted">Recto-verso</td>
+                        <td>{% if machine.recto_verso %}<span class="badge bg-success">Oui</span>{% if machine.vitesse_recto_verso %} — {{ machine.vitesse_recto_verso|floatformat:"-1" }} t/min{% endif %}{% else %}<span class="badge bg-secondary">Non</span>{% endif %}</td></tr>
+                    <tr class="table-light"><td colspan="2" class="fw-semibold pt-2" style="font-size:11px;letter-spacing:.5px;">TEMPS (min)</td></tr>
+                    <tr><td class="text-muted">Mise en œuvre</td><td>{{ machine.temps_mise_en_oeuvre|floatformat:"-1" }} min</td></tr>
+                    <tr><td class="text-muted">Calage</td><td>{{ machine.temps_calage|floatformat:"-1" }} min</td></tr>
+                    <tr><td class="text-muted">Nettoyage</td><td>{{ machine.temps_nettoyage|floatformat:"-1" }} min</td></tr>
+                    <tr class="table-light"><td colspan="2" class="fw-semibold pt-2" style="font-size:11px;letter-spacing:.5px;">COÛTS HORAIRES</td></tr>
+                    <tr><td class="text-muted">NRJ</td><td>{{ machine.cout_nrj_heure|floatformat:"-2" }} XPF/h</td></tr>
+                    <tr><td class="text-muted">Amortissement</td><td>{{ machine.cout_amortissement_heure|floatformat:"-2" }} XPF/h</td></tr>
+                    <tr><td class="text-muted">Entretien</td><td>{{ machine.cout_entretien_heure|floatformat:"-2" }} XPF/h</td></tr>
+                    <tr><td class="text-muted fw-semibold">Total coût/h</td><td class="fw-bold">{{ machine.cout_heure|floatformat:"-2" }} XPF/h</td></tr>
+                    <tr><td class="text-muted">Taux de gâche</td><td>{{ machine.taux_gache|floatformat:"1" }} %</td></tr>
+                    {% if machine.description %}
+                    <tr><td class="text-muted">Description</td><td>{{ machine.description }}</td></tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# Simulation coûts #}
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent fw-semibold border-0 pt-3" style="font-size:13px;">
+                <i class="bi bi-calculator me-2 text-primary"></i>Simulation des coûts
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover table-sm mb-0" style="font-size:13px;">
+                    <thead>
+                        <tr>
+                            <th class="eip-th">Nb impressions</th>
+                            <th class="eip-th text-end">Coût fixe</th>
+                            <th class="eip-th text-end">Coût variable</th>
+                            <th class="eip-th text-end fw-bold">Coût total</th>
+                            <th class="eip-th text-end">PU / impr.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in simulations %}
+                        <tr>
+                            <td class="eip-td fw-semibold">{{ s.qte|floatformat:"0" }}</td>
+                            <td class="eip-td text-end text-muted">{{ machine.cout_fixe_job|floatformat:"-2" }}</td>
+                            <td class="eip-td text-end text-muted">{% with variable=s.cout_total|add:machine.cout_fixe_job %}—{% endwith %}—</td>
+                            <td class="eip-td text-end fw-bold">{{ s.cout_total|floatformat:"-2" }} XPF</td>
+                            <td class="eip-td text-end">{{ s.pu|floatformat:"4" }} XPF</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-transparent border-0" style="font-size:11px;color:#6c757d;">
+                Coût fixe = calage + nettoyage + mise en œuvre &nbsp;·&nbsp; Gâche de {{ machine.taux_gache|floatformat:"1" }}% incluse dans le coût variable
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

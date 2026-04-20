@@ -9,7 +9,10 @@
 
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-3">
-    <h4 class="fw-bold mb-0"><i class="bi bi-file-text me-2"></i>{{ devis.numero }}</h4>
+    <h4 class="fw-bold mb-0">
+        <i class="bi bi-file-text me-2"></i>{{ devis.numero }}
+        {% if devis.urgent %}<span class="badge bg-danger ms-2"><i class="bi bi-lightning-fill me-1"></i>Urgent</span>{% endif %}
+    </h4>
     <div class="d-flex gap-2">
         <a href="{% url 'dossiers:pdf' devis.pk %}" class="btn btn-sm btn-outline-danger" target="_blank" title="Télécharger le PDF">
             <i class="bi bi-file-earmark-pdf me-1"></i>PDF
@@ -68,6 +71,18 @@
                     <tr>
                         <td class="text-muted">Remise globale</td>
                         <td>{{ devis.remise_globale|floatformat:"-2" }} %</td>
+                    </tr>
+                    {% endif %}
+                    {% if devis.format %}
+                    <tr>
+                        <td class="text-muted">Format</td>
+                        <td>{{ devis.format }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if devis.papier %}
+                    <tr>
+                        <td class="text-muted">Papier</td>
+                        <td>{{ devis.papier }}</td>
                     </tr>
                     {% endif %}
                 </table>
@@ -183,6 +198,7 @@
             <i class="bi bi-chevron-down" id="vicon-v{{ vid }}" style="font-size:15px;"></i>
         </button>
         <span class="fw-bold" style="font-size:15px;">{{ variante.libelle }}</span>
+        {% if variante.quantite %}<span class="badge bg-light text-dark border ms-1" style="font-size:12px;">{{ variante.quantite|floatformat:"-0" }} ex</span>{% endif %}
         {% if variante.statut == 'brouillon' %}
         <span class="badge bg-secondary">Brouillon</span>
         {% elif variante.statut == 'envoye' %}
